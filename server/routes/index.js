@@ -1,0 +1,18 @@
+const express = require('express');
+const router = express.Router();
+
+router.use('/auth', require('./authRoutes'));
+router.use('/vehicles', require('./vehicleRoutes'));
+router.use('/analytics', require('./analyticsRoutes'));
+router.use('/ai', require('./aiRoutes'));
+
+router.get('/health', (req, res) => {
+  res.json({
+    success: true,
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
+module.exports = router;
