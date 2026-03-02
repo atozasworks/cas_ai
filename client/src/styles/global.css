@@ -1,4 +1,7 @@
 :root {
+  /* System fonts: iOS → San Francisco, Android → Roboto */
+  --font-system: -apple-system, BlinkMacSystemFont, "San Francisco", Roboto, "Helvetica Neue", Arial, sans-serif;
+
   --bg-primary: #0f172a;
   --bg-secondary: #1e293b;
   --bg-tertiary: #334155;
@@ -18,7 +21,23 @@
   --radius: 12px;
   --radius-sm: 8px;
   --transition: all 0.3s ease;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  /* Overlay / floating surfaces; light theme overrides below */
+  --bg-overlay: rgba(15, 23, 42, 0.92);
+  --bg-auth-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.3);
+
+  /* Typography hierarchy */
+  --font-heading-size: 1.5rem;
+  --font-heading-weight: 700;
+  --font-heading-line-height: 1.25;
+  --font-subheading-size: 1.125rem;
+  --font-subheading-weight: 600;
+  --font-subheading-line-height: 1.35;
+  --font-body-size: 1rem;
+  --font-body-weight: 400;
+  --font-body-line-height: 1.6;
+
+  font-family: var(--font-system);
 }
 
 [data-theme="light"] {
@@ -31,6 +50,10 @@
   --text-muted: #94a3b8;
   --border-color: #e2e8f0;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  /* Overlay / floating surfaces (e.g. map cards) */
+  --bg-overlay: rgba(255, 255, 255, 0.94);
+  --bg-auth-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f8fafc 100%);
+  --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.08);
 }
 
 *, *::before, *::after {
@@ -42,8 +65,40 @@
 body {
   background: var(--bg-primary);
   color: var(--text-primary);
-  line-height: 1.6;
+  font-family: var(--font-system);
+  font-size: var(--font-body-size);
+  font-weight: var(--font-body-weight);
+  line-height: var(--font-body-line-height);
   overflow-x: hidden;
+}
+
+/* Typography hierarchy */
+.text-heading,
+h1, h2 {
+  font-family: var(--font-system);
+  font-size: var(--font-heading-size);
+  font-weight: var(--font-heading-weight);
+  line-height: var(--font-heading-line-height);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.text-subheading,
+h3, h4 {
+  font-family: var(--font-system);
+  font-size: var(--font-subheading-size);
+  font-weight: var(--font-subheading-weight);
+  line-height: var(--font-subheading-line-height);
+  color: var(--text-primary);
+}
+
+.text-body,
+p {
+  font-family: var(--font-system);
+  font-size: var(--font-body-size);
+  font-weight: var(--font-body-weight);
+  line-height: var(--font-body-line-height);
+  color: var(--text-primary);
 }
 
 a { color: var(--accent-blue); text-decoration: none; }

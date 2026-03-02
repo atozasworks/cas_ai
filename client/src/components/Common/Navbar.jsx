@@ -18,13 +18,13 @@ export default function Navbar() {
   ];
 
   return (
-    <nav style={styles.nav}>
+    <nav className="navbar" style={styles.nav}>
       <div style={styles.left}>
         <Link to="/" style={styles.brand}>
           <FiShield style={{ color: '#3b82f6', fontSize: 24 }} />
           <span style={styles.brandText}>CAS</span>
         </Link>
-        <div style={styles.links}>
+        <div className="navbar-desktop-links" style={styles.links}>
           {navItems.map((item) => (
             <Link
               key={item.to}
@@ -40,7 +40,7 @@ export default function Navbar() {
           ))}
         </div>
       </div>
-      <div style={styles.right}>
+      <div className="navbar-right" style={styles.right}>
         <div style={styles.status}>
           {connected
             ? <><FiWifi style={{ color: '#22c55e' }} /> <span style={{ color: '#22c55e', fontSize: 12 }}>Live</span></>
@@ -50,7 +50,7 @@ export default function Navbar() {
         <button onClick={toggleTheme} style={styles.iconBtn} title="Toggle theme">
           {theme === 'dark' ? <FiSun /> : <FiMoon />}
         </button>
-        <span style={styles.userName}>{user?.name}</span>
+        <span className="navbar-user-name" style={styles.userName}>{user?.name}</span>
         <button onClick={logout} style={styles.iconBtn} title="Logout">
           <FiLogOut />
         </button>
