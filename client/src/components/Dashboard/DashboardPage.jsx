@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSocket } from '../../context/SocketContext';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import TrackingMap from '../Map/TrackingMap';
 import RiskMeter from './RiskMeter';
 import ProximityRadar from './ProximityRadar';
@@ -7,12 +8,22 @@ import EscapeArrow from './EscapeArrow';
 import AlertPanel from './AlertPanel';
 import VehicleSelector from './VehicleSelector';
 import AIAssistant from './AIAssistant';
+import MobileHomeScreen from '../Mobile/MobileHomeScreen';
 
 export default function DashboardPage() {
   const { riskData, nearbyVehicles, behaviorAlert } = useSocket();
+  const isMobile = useIsMobile();
 
   const riskLevel = riskData?.riskLevel || 'low';
   const riskScore = riskData?.finalRisk || 0;
+
+  if (isMobile) {
+    return (
+      <div className="mobile-root">
+        <MobileHomeScreen />
+      </div>
+    );
+  }
 
   return (
     <div style={styles.page}>

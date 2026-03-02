@@ -64,7 +64,7 @@ export default function AnalyticsPage() {
   const lifetimeStats = dashboard.lifetimeStats || {};
 
   return (
-    <div style={styles.page}>
+    <div style={styles.page} className="mobile-page-padding mobile-main">
       <h2 style={styles.pageTitle}>Driving Analytics</h2>
 
       {/* Top Stats */}

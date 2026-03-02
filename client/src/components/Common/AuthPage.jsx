@@ -112,7 +112,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+    background: 'var(--bg-auth-gradient)',
     padding: 20,
   },
   card: {
@@ -122,7 +122,7 @@ const styles = {
     border: '1px solid var(--border-color)',
     borderRadius: 16,
     padding: 40,
-    boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+    boxShadow: 'var(--shadow-card)',
   },
   header: {
     textAlign: 'center',
