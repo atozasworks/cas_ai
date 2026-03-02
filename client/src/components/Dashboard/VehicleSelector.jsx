@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { vehicleAPI } from '../../services/api';
 import { useSocket } from '../../context/SocketContext';
-import { FiTruck, FiPlay, FiSquare, FiPlus } from 'react-icons/fi';
+import { FiTruck, FiPlay, FiSquare, FiPlus, FiTrash2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 export default function VehicleSelector() {
@@ -33,6 +33,18 @@ export default function VehicleSelector() {
       loadVehicles();
     } catch (err) {
       toast.error(err?.message || 'Failed to add vehicle');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this vehicle?')) return;
+    try {
+      await vehicleAPI.remove(id);
+      toast.success('Vehicle deleted');
+      if (activeVehicleId === id) stopTracking();
+      loadVehicles();
+    } catch (err) {
+      toast.error(err?.message || 'Failed to delete vehicle');
     }
   };
 
@@ -98,16 +110,25 @@ export default function VehicleSelector() {
                   {v.type} {v.make && `| ${v.make}`} {v.model && v.model}
                 </div>
               </div>
-              <button
-                onClick={() => isActive ? stopTracking() : startTracking(v._id || v.id)}
-                style={{
-                  ...styles.trackBtn,
-                  background: isActive ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
-                  color: isActive ? '#ef4444' : '#22c55e',
-                }}
-              >
-                {isActive ? <><FiSquare /> Stop</> : <><FiPlay /> Track</>}
-              </button>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <button
+                  onClick={() => isActive ? stopTracking() : startTracking(v._id || v.id)}
+                  style={{
+                    ...styles.trackBtn,
+                    background: isActive ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+                    color: isActive ? '#ef4444' : '#22c55e',
+                  }}
+                >
+                  {isActive ? <><FiSquare /> Stop</> : <><FiPlay /> Track</>}
+                </button>
+                <button
+                  onClick={() => handleDelete(v._id || v.id)}
+                  style={styles.deleteBtn}
+                  title="Delete vehicle"
+                >
+                  <FiTrash2 />
+                </button>
+              </div>
             </div>
           );
         })}
@@ -150,5 +171,12 @@ const styles = {
     display: 'flex', alignItems: 'center', gap: 4,
     padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600,
     border: 'none', cursor: 'pointer',
+  },
+  deleteBtn: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: '6px 8px', borderRadius: 6, fontSize: 14,
+    background: 'rgba(239,68,68,0.1)', color: '#ef4444',
+    border: 'none', cursor: 'pointer',
+    transition: 'all 0.2s',
   },
 };
