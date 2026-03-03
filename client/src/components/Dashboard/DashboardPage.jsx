@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSocket } from '../../context/SocketContext';
+import { useAuth } from '../../context/AuthContext';
+import { vehicleAPI } from '../../services/api';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import TrackingMap from '../Map/TrackingMap';
 import RiskMeter from './RiskMeter';
@@ -11,8 +13,27 @@ import AIAssistant from './AIAssistant';
 import MobileHomeScreen from '../Mobile/MobileHomeScreen';
 
 export default function DashboardPage() {
-  const { riskData, nearbyVehicles, behaviorAlert } = useSocket();
+  const { riskData, nearbyVehicles, behaviorAlert, activeVehicleId } = useSocket();
+  const { user } = useAuth();
   const isMobile = useIsMobile();
+  const [vehicles, setVehicles] = useState([]);
+
+  const loadVehicles = () => {
+    vehicleAPI.getAll()
+      .then((data) => setVehicles(data.vehicles || []))
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    loadVehicles();
+    // Refresh vehicles list every 10 seconds to catch newly added vehicles
+    const interval = setInterval(loadVehicles, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const activeVehicle = vehicles.find(
+    (v) => (v._id || v.id) === activeVehicleId
+  );
 
   const riskLevel = riskData?.riskLevel || 'low';
   const riskScore = riskData?.finalRisk || 0;
@@ -43,7 +64,7 @@ export default function DashboardPage() {
         {/* Left Column: Map + Vehicles */}
         <div style={styles.leftCol}>
           <div className="card" style={styles.mapCard}>
-            <TrackingMap />
+            <TrackingMap userName={user?.name} activeVehicle={activeVehicle} vehicles={vehicles} />
           </div>
           <div className="card">
             <VehicleSelector />
