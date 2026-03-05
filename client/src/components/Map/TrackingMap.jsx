@@ -18,6 +18,8 @@ const myLocationIcon = L.divIcon({
   iconAnchor: [10, 10],
 });
 
+//custom icon for user's own vehicle – shows type emoji and "ME" badge
+
 const getMyVehicleIcon = (type) => {
   const t = VEHICLE_TYPE_MAP[type] || VEHICLE_TYPE_MAP.car;
   return L.divIcon({
