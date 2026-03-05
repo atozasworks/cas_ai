@@ -12,8 +12,8 @@ export function SocketProvider({ children }) {
   const [emergency, setEmergency] = useState(null);
   const [behaviorAlert, setBehaviorAlert] = useState(null);
   const [activeVehicleId, setActiveVehicleId] = useState(null);
+  const [lastPosition, setLastPosition] = useState(null);
   const gpsIntervalRef = useRef(null);
-  const lastPositionRef = useRef(null);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -70,7 +70,7 @@ export function SocketProvider({ children }) {
       if (!navigator.geolocation) return;
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const prevHeading = lastPositionRef.current?.heading || 0;
+          const prevHeading = lastPosition?.heading || 0;
           const locationData = {
             vehicleId,
             userId: user._id || user.id,
@@ -83,7 +83,7 @@ export function SocketProvider({ children }) {
             accuracy: pos.coords.accuracy || 0,
             previousHeading: prevHeading,
           };
-          lastPositionRef.current = locationData;
+          setLastPosition(locationData);
           sendLocationUpdate(locationData);
         },
         (err) => console.error('GPS error:', err.message),
@@ -103,6 +103,7 @@ export function SocketProvider({ children }) {
     setActiveVehicleId(null);
     setRiskData(null);
     setNearbyVehicles([]);
+    setLastPosition(null);
   }, []);
 
   return (
@@ -115,7 +116,7 @@ export function SocketProvider({ children }) {
       activeVehicleId,
       startTracking,
       stopTracking,
-      lastPosition: lastPositionRef.current,
+      lastPosition,
     }}>
       {children}
     </SocketContext.Provider>

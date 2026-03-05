@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
-
+//http://localhost:5000
 const api = axios.create({
   baseURL: API_BASE,
   timeout: 15000,
@@ -38,6 +38,7 @@ export const authAPI = {
 export const vehicleAPI = {
   create: (data) => api.post('/vehicles', data),
   getAll: () => api.get('/vehicles'),
+  getAllForMap: () => api.get('/vehicles/map-all'),
   getById: (id) => api.get(`/vehicles/${id}`),
   update: (id, data) => api.patch(`/vehicles/${id}`, data),
   remove: (id) => api.delete(`/vehicles/${id}`),

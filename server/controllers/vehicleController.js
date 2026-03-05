@@ -81,3 +81,39 @@ exports.getNearbyOnlineVehicles = asyncHandler(async (req, res) => {
 
   res.json({ success: true, count: vehicles.length, vehicles });
 });
+
+// Get all active vehicles from all users (for map display)
+exports.getAllMapVehicles = asyncHandler(async (req, res) => {
+  const User = require('../models/User');
+
+  // Only show vehicles that are either:
+  // 1. Currently online (actively transmitting), OR
+  // 2. Owned by the requesting user (so they can always see their own)
+  const vehicles = await Vehicle.find({
+    isActive: true,
+    $or: [
+      { isOnline: true },
+      { owner: req.user._id },
+    ],
+  })
+    .populate('owner', 'name email')
+    .sort({ isOnline: -1, updatedAt: -1 })
+    .limit(200)
+    .lean();
+
+  // Filter out vehicles at exactly [0, 0] or without coordinates
+  const filtered = vehicles.filter((v) => {
+    const coords = v.lastKnownLocation?.coordinates;
+    return coords && (coords[0] !== 0 || coords[1] !== 0);
+  });
+
+  // Add ownerName to each vehicle for easy access
+  const result = filtered.map((v) => ({
+    ...v,
+    ownerName: v.owner?.name || 'Unknown',
+    ownerEmail: v.owner?.email || '',
+    isOwn: v.owner?._id?.toString() === req.user._id.toString(),
+  }));
+
+  res.json({ success: true, count: result.length, vehicles: result });
+});

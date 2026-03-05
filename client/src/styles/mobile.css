@@ -258,13 +258,38 @@
   .mobile-dashboard-wrap {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
     padding: 16px;
-    padding-bottom: 88px;
+    padding-bottom: 96px;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0));
+    max-width: 480px;
+    margin: 0 auto;
   }
 
   .mobile-dashboard-wrap .card {
     border-radius: 16px;
+    width: 100%;
+  }
+
+  .mobile-dashboard-map-card {
+    padding: 0;
+    overflow: hidden;
+    height: 320px;
+    min-height: 320px;
+  }
+
+  .mobile-dashboard-radar-row {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  @media (min-width: 560px) and (max-width: 768px) {
+    .mobile-dashboard-radar-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
   }
 
   /* --- Vehicle form (floating labels style on mobile) --- */

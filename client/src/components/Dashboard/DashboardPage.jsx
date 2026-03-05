@@ -10,13 +10,13 @@ import EscapeArrow from './EscapeArrow';
 import AlertPanel from './AlertPanel';
 import VehicleSelector from './VehicleSelector';
 import AIAssistant from './AIAssistant';
-import MobileHomeScreen from '../Mobile/MobileHomeScreen';
 
 export default function DashboardPage() {
   const { riskData, nearbyVehicles, behaviorAlert, activeVehicleId } = useSocket();
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [vehicles, setVehicles] = useState([]);
+  const [allMapVehicles, setAllMapVehicles] = useState([]);
 
   const loadVehicles = () => {
     vehicleAPI.getAll()
@@ -24,10 +24,19 @@ export default function DashboardPage() {
       .catch(() => {});
   };
 
+  const loadMapVehicles = () => {
+    vehicleAPI.getAllForMap()
+      .then((data) => setAllMapVehicles(data.vehicles || []))
+      .catch(() => {});
+  };
+
   useEffect(() => {
     loadVehicles();
-    // Refresh vehicles list every 10 seconds to catch newly added vehicles
-    const interval = setInterval(loadVehicles, 10000);
+    loadMapVehicles();
+    const interval = setInterval(() => {
+      loadVehicles();
+      loadMapVehicles();
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -41,7 +50,45 @@ export default function DashboardPage() {
   if (isMobile) {
     return (
       <div className="mobile-root">
-        <MobileHomeScreen />
+        <div className="mobile-dashboard-wrap mobile-main">
+          {behaviorAlert && (
+            <div style={{ ...styles.behaviorBanner, marginBottom: 0 }}>
+              <span style={styles.behaviorIcon}>
+                {behaviorAlert.type === 'hard_brake' ? '!!!' :
+                 behaviorAlert.type === 'sharp_turn' ? '!!!' :
+                 behaviorAlert.type === 'overspeed' ? '!!!' : '!!!'}
+              </span>
+              {behaviorAlert.message}
+            </div>
+          )}
+
+          <div className="card mobile-dashboard-map-card">
+            <TrackingMap userName={user?.name} activeVehicle={activeVehicle} vehicles={vehicles} allMapVehicles={allMapVehicles} />
+          </div>
+
+          <div className="card">
+            <VehicleSelector />
+          </div>
+
+          <div className="card">
+            <RiskMeter riskScore={riskScore} riskLevel={riskLevel} />
+          </div>
+
+          <AlertPanel riskData={riskData} />
+
+          <div className="mobile-dashboard-radar-row">
+            <div className="card">
+              <ProximityRadar nearbyVehicles={nearbyVehicles} riskLevel={riskLevel} />
+            </div>
+            <div className="card">
+              <EscapeArrow escapePath={riskData?.escapePath} riskLevel={riskLevel} />
+            </div>
+          </div>
+
+          <div className="card">
+            <AIAssistant />
+          </div>
+        </div>
       </div>
     );
   }
@@ -64,7 +111,7 @@ export default function DashboardPage() {
         {/* Left Column: Map + Vehicles */}
         <div style={styles.leftCol}>
           <div className="card" style={styles.mapCard}>
-            <TrackingMap userName={user?.name} activeVehicle={activeVehicle} vehicles={vehicles} />
+            <TrackingMap userName={user?.name} activeVehicle={activeVehicle} vehicles={vehicles} allMapVehicles={allMapVehicles} />
           </div>
           <div className="card">
             <VehicleSelector />
