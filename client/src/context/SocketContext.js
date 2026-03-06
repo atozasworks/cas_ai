@@ -11,9 +11,10 @@ export function SocketProvider({ children }) {
   const [nearbyVehicles, setNearbyVehicles] = useState([]);
   const [emergency, setEmergency] = useState(null);
   const [behaviorAlert, setBehaviorAlert] = useState(null);
+  const [vehicleNearbyAlert, setVehicleNearbyAlert] = useState(null);
   const [activeVehicleId, setActiveVehicleId] = useState(null);
+  const [lastPosition, setLastPosition] = useState(null);
   const gpsIntervalRef = useRef(null);
-  const lastPositionRef = useRef(null);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -26,11 +27,20 @@ export function SocketProvider({ children }) {
     socket.on('risk:update', (data) => {
       setRiskData(data);
       setNearbyVehicles(data.nearbyVehicles || []);
+      // Show popup from risk data when closest vehicle is within 10m (fallback if event missed)
+      const alertMeters = 10;
+      const dist = data.assessments?.[0]?.components?.distance;
+      const nearby = data.nearbyVehicles || [];
+      if (dist != null && dist <= alertMeters && nearby.length > 0) {
+        const closest = { ...nearby[0], distance: dist };
+        setVehicleNearbyAlert({ vehicle: closest, distance: dist, message: `Vehicle within ${Math.round(dist)}m`, playSound: true });
+      }
     });
 
     socket.on('risk:clear', () => {
       setRiskData(null);
       setNearbyVehicles([]);
+      setVehicleNearbyAlert(null);
     });
 
     socket.on('emergency:crash-detected', (data) => {
@@ -49,6 +59,10 @@ export function SocketProvider({ children }) {
     socket.on('alert:near-miss', (data) => {
       setBehaviorAlert({ type: 'near_miss', message: data.message });
       setTimeout(() => setBehaviorAlert(null), 8000);
+    });
+
+    socket.on('alert:vehicle-nearby', (data) => {
+      setVehicleNearbyAlert(data);
     });
 
     return () => {
@@ -70,7 +84,7 @@ export function SocketProvider({ children }) {
       if (!navigator.geolocation) return;
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const prevHeading = lastPositionRef.current?.heading || 0;
+          const prevHeading = lastPosition?.heading || 0;
           const locationData = {
             vehicleId,
             userId: user._id || user.id,
@@ -83,7 +97,7 @@ export function SocketProvider({ children }) {
             accuracy: pos.coords.accuracy || 0,
             previousHeading: prevHeading,
           };
-          lastPositionRef.current = locationData;
+          setLastPosition(locationData);
           sendLocationUpdate(locationData);
         },
         (err) => console.error('GPS error:', err.message),
@@ -103,6 +117,7 @@ export function SocketProvider({ children }) {
     setActiveVehicleId(null);
     setRiskData(null);
     setNearbyVehicles([]);
+    setLastPosition(null);
   }, []);
 
   return (
@@ -112,10 +127,12 @@ export function SocketProvider({ children }) {
       nearbyVehicles,
       emergency,
       behaviorAlert,
+      vehicleNearbyAlert,
+      dismissVehicleNearbyAlert: () => setVehicleNearbyAlert(null),
       activeVehicleId,
       startTracking,
       stopTracking,
-      lastPosition: lastPositionRef.current,
+      lastPosition,
     }}>
       {children}
     </SocketContext.Provider>

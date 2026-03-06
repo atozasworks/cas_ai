@@ -57,18 +57,26 @@ export default function EmergencyOverlay() {
 
   if (!emergency || dismissed) return null;
 
+  const directionArrows = ['↑', '↓', '←', '→'];
+
   return (
-    <div style={styles.overlay}>
-      <div style={styles.content}>
+    <div style={styles.overlay} className="emergency-overlay-mobile">
+      <div style={styles.content} className="emergency-content">
         <div style={styles.iconPulse}>
           <FiAlertOctagon style={{ fontSize: 64, color: 'white' }} />
         </div>
 
-        <h1 style={styles.title}>CRASH DETECTED</h1>
+        <h1 style={styles.title} className="emergency-title">CRASH DETECTED</h1>
         <p style={styles.severity}>
           Severity: <strong>{emergency.severity?.toUpperCase()}</strong>
         </p>
         <p style={styles.message}>{emergency.message}</p>
+
+        <div className="emergency-direction-arrows" aria-hidden="true">
+          {directionArrows.map((arrow) => (
+            <span key={arrow}>{arrow}</span>
+          ))}
+        </div>
 
         <div style={styles.countdown}>
           <div style={styles.countdownCircle}>
@@ -79,7 +87,7 @@ export default function EmergencyOverlay() {
           </p>
         </div>
 
-        <div style={styles.buttons}>
+        <div style={styles.buttons} className="emergency-buttons">
           <button onClick={handleSafe} style={styles.safeBtn}>
             <FiShield style={{ fontSize: 22 }} />
             I AM SAFE

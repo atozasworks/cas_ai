@@ -23,7 +23,7 @@ export default function SettingsPage() {
   const toggle = (key) => setPrefs((p) => ({ ...p, [key]: !p[key] }));
 
   return (
-    <div style={styles.page}>
+    <div style={styles.page} className="mobile-page-padding mobile-main mobile-settings-page">
       <h2 style={styles.pageTitle}>Settings</h2>
 
       <div className="card" style={{ marginBottom: 20 }}>
@@ -42,75 +42,84 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: 20 }}>
+      <div className="card settings-card" style={{ marginBottom: 20 }}>
         <h3 style={styles.section}><FiBell /> Alert Preferences</h3>
 
-        <div style={styles.settingRow}>
+        <div className="setting-row" style={styles.settingRow}>
           <div>
             <div style={styles.settingLabel}><FiVolume2 /> Alert Sound</div>
             <div style={styles.settingDesc}>Play audio when risk detected</div>
           </div>
-          <button
-            onClick={() => toggle('alertSound')}
-            style={{ ...styles.toggleBtn, background: prefs.alertSound ? '#22c55e' : 'var(--bg-tertiary)' }}
-          >
-            <div style={{
-              ...styles.toggleDot,
-              transform: prefs.alertSound ? 'translateX(20px)' : 'translateX(2px)',
-            }} />
-          </button>
+          <span className="setting-control">
+            <button
+              onClick={() => toggle('alertSound')}
+              style={{ ...styles.toggleBtn, background: prefs.alertSound ? '#22c55e' : 'var(--bg-tertiary)' }}
+            >
+              <div style={{
+                ...styles.toggleDot,
+                transform: prefs.alertSound ? 'translateX(20px)' : 'translateX(2px)',
+              }} />
+            </button>
+          </span>
         </div>
 
-        <div style={styles.settingRow}>
+        <div className="setting-row" style={styles.settingRow}>
           <div>
             <div style={styles.settingLabel}><FiVolume2 /> Voice Alerts</div>
             <div style={styles.settingDesc}>Spoken warnings for high-risk events</div>
           </div>
-          <button
-            onClick={() => toggle('voiceAlerts')}
-            style={{ ...styles.toggleBtn, background: prefs.voiceAlerts ? '#22c55e' : 'var(--bg-tertiary)' }}
-          >
-            <div style={{
-              ...styles.toggleDot,
-              transform: prefs.voiceAlerts ? 'translateX(20px)' : 'translateX(2px)',
-            }} />
-          </button>
+          <span className="setting-control">
+            <button
+              onClick={() => toggle('voiceAlerts')}
+              style={{ ...styles.toggleBtn, background: prefs.voiceAlerts ? '#22c55e' : 'var(--bg-tertiary)' }}
+            >
+              <div style={{
+                ...styles.toggleDot,
+                transform: prefs.voiceAlerts ? 'translateX(20px)' : 'translateX(2px)',
+              }} />
+            </button>
+          </span>
         </div>
 
-        <div style={styles.settingRow}>
+        <div className="setting-row" style={styles.settingRow}>
           <div>
             <div style={styles.settingLabel}><FiSun /> Dark Mode</div>
             <div style={styles.settingDesc}>Toggle dark/light theme</div>
           </div>
-          <button
-            onClick={toggleTheme}
-            style={{ ...styles.toggleBtn, background: theme === 'dark' ? '#22c55e' : 'var(--bg-tertiary)' }}
-          >
-            <div style={{
-              ...styles.toggleDot,
-              transform: theme === 'dark' ? 'translateX(20px)' : 'translateX(2px)',
-            }} />
-          </button>
+          <span className="setting-control">
+            <button
+              onClick={toggleTheme}
+              style={{ ...styles.toggleBtn, background: theme === 'dark' ? '#22c55e' : 'var(--bg-tertiary)' }}
+            >
+              <div style={{
+                ...styles.toggleDot,
+                transform: theme === 'dark' ? 'translateX(20px)' : 'translateX(2px)',
+              }} />
+            </button>
+          </span>
         </div>
 
-        <div style={styles.settingRow}>
+        <div className="setting-row" style={styles.settingRow}>
           <div>
             <div style={styles.settingLabel}><FiShield /> Alert Sensitivity</div>
             <div style={styles.settingDesc}>Controls warning threshold</div>
           </div>
-          <select
-            value={prefs.alertSensitivity}
-            onChange={(e) => setPrefs({ ...prefs, alertSensitivity: e.target.value })}
-            style={styles.select}
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
+          <span className="setting-control">
+            <select
+              value={prefs.alertSensitivity}
+              onChange={(e) => setPrefs({ ...prefs, alertSensitivity: e.target.value })}
+              style={styles.select}
+              className="setting-select"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </span>
         </div>
       </div>
 
-      <button onClick={handleSave} className="btn btn-primary">
+      <button onClick={handleSave} className="btn btn-primary" style={styles.saveBtn}>
         Save Preferences
       </button>
     </div>
@@ -149,5 +158,12 @@ const styles = {
     padding: '6px 10px', fontSize: 13, borderRadius: 6,
     background: 'var(--bg-tertiary)', color: 'var(--text-primary)',
     border: '1px solid var(--border-color)',
+  },
+  saveBtn: {
+    width: '100%',
+    minHeight: 48,
+    padding: '14px 20px',
+    fontSize: 16,
+    fontWeight: 600,
   },
 };

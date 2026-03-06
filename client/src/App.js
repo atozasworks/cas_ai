@@ -5,10 +5,14 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import AuthPage from './components/Common/AuthPage';
 import Navbar from './components/Common/Navbar';
+import BottomNav from './components/Mobile/BottomNav';
 import DashboardPage from './components/Dashboard/DashboardPage';
 import AnalyticsPage from './components/Analytics/AnalyticsPage';
 import SettingsPage from './components/Dashboard/SettingsPage';
 import EmergencyOverlay from './components/Emergency/EmergencyOverlay';
+import VehicleNearbyPopup from './components/Dashboard/VehicleNearbyPopup';
+import MobileTrackScreen from './components/Mobile/MobileTrackScreen';
+import { useIsMobile } from './hooks/useIsMobile';
 
 function PrivateRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -20,6 +24,12 @@ function PrivateRoute({ children }) {
     );
   }
   return isAuthenticated ? children : <Navigate to="/login" replace />;
+}
+
+function TrackRoute() {
+  const isMobile = useIsMobile();
+  if (isMobile) return <MobileTrackScreen />;
+  return <Navigate to="/" replace />;
 }
 
 function AppRoutes() {
@@ -37,12 +47,17 @@ function AppRoutes() {
     <>
       {isAuthenticated && <Navbar />}
       {isAuthenticated && <EmergencyOverlay />}
+      {isAuthenticated && <VehicleNearbyPopup />}
+      {isAuthenticated && <BottomNav />}
       <Routes>
         <Route path="/login" element={
           isAuthenticated ? <Navigate to="/" replace /> : <AuthPage />
         } />
         <Route path="/" element={
           <PrivateRoute><DashboardPage /></PrivateRoute>
+        } />
+        <Route path="/track" element={
+          <PrivateRoute><TrackRoute /></PrivateRoute>
         } />
         <Route path="/analytics" element={
           <PrivateRoute><AnalyticsPage /></PrivateRoute>

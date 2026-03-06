@@ -1,0 +1,404 @@
+/* ============================================
+   MOBILE-ONLY STYLES (max-width: 768px)
+   Desktop design remains unchanged.
+   ============================================ */
+
+@media (max-width: 768px) {
+  /* --- Safe area (iOS notch/home indicator) --- */
+  .mobile-root {
+    padding-top: env(safe-area-inset-top, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* --- Prevent zoom on focus (inputs) --- */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* --- Touch-friendly, no hover reliance --- */
+  button,
+  a,
+  [role="button"] {
+    min-height: 48px;
+    min-width: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* --- Main content area: leave space for fixed bottom nav --- */
+  .mobile-main {
+    padding-bottom: 72px;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0));
+  }
+
+  /* --- Navbar: hide desktop links, show only logo + profile --- */
+  .navbar-desktop-links {
+    display: none !important;
+  }
+
+  .navbar {
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    padding-top: calc(8px + env(safe-area-inset-top, 0));
+    min-height: 56px;
+  }
+
+  .navbar .navbar-right .navbar-user-name {
+    display: none !important;
+  }
+
+  /* --- Bottom navigation (tab bar) --- */
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    height: calc(64px + env(safe-area-inset-bottom, 0));
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    z-index: 1000;
+    align-items: center;
+    justify-content: space-around;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .mobile-bottom-nav a {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 4px;
+    min-height: 64px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 500;
+    transition: color 0.2s, background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-bottom-nav a.active {
+    color: #2563eb;
+    background: rgba(37, 99, 235, 0.08);
+  }
+
+  .mobile-bottom-nav a .nav-icon {
+    font-size: 22px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* --- Mobile Home screen --- */
+  .mobile-home-screen {
+    padding: 24px 20px;
+    max-width: 430px;
+    margin: 0 auto;
+  }
+
+  .mobile-home-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 28px 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+  }
+
+  .mobile-home-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+
+  .mobile-home-subtitle {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 24px;
+  }
+
+  .mobile-home-illustration {
+    width: 100%;
+    height: 160px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+
+  .mobile-home-cta {
+    width: 100%;
+    padding: 16px 24px;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 14px;
+    min-height: 52px;
+  }
+
+  /* --- Mobile Track screen (full-screen map + floating UI) --- */
+  .mobile-track-screen {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 56px;
+    top: calc(56px + env(safe-area-inset-top, 0));
+    bottom: 0;
+    z-index: 0;
+  }
+
+  .mobile-track-map-wrap {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .mobile-track-map-wrap .leaflet-container {
+    border-radius: 0;
+    min-height: 100%;
+  }
+
+  .mobile-track-floating {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    top: 16px;
+    top: calc(16px + env(safe-area-inset-top, 0));
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .mobile-track-floating > * {
+    pointer-events: auto;
+  }
+
+  .mobile-track-speed-card {
+    background: var(--bg-overlay);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .mobile-track-risk-badge {
+    align-self: flex-start;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .mobile-track-gps {
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mobile-track-fab-row {
+    position: absolute;
+    bottom: 88px;
+    bottom: calc(88px + env(safe-area-inset-bottom, 0));
+    left: 16px;
+    right: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .mobile-track-fab-row > * {
+    pointer-events: auto;
+  }
+
+  .mobile-track-radar-float {
+    position: absolute;
+    right: 16px;
+    bottom: 88px;
+    bottom: calc(88px + env(safe-area-inset-bottom, 0));
+    z-index: 10;
+    background: var(--bg-overlay);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 12px;
+  }
+
+  /* --- Dashboard page: on mobile single column, hide when showing mobile home --- */
+  .mobile-dashboard-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+    padding-bottom: 96px;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0));
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .mobile-dashboard-wrap .card {
+    border-radius: 16px;
+    width: 100%;
+  }
+
+  .mobile-dashboard-map-card {
+    padding: 0;
+    overflow: hidden;
+    height: 320px;
+    min-height: 320px;
+  }
+
+  .mobile-dashboard-radar-row {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  @media (min-width: 560px) and (max-width: 768px) {
+    .mobile-dashboard-radar-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+  }
+
+  /* --- Vehicle form (floating labels style on mobile) --- */
+  .mobile-form-group {
+    margin-bottom: 20px;
+  }
+
+  .mobile-form-group input,
+  .mobile-form-group select {
+    width: 100%;
+    padding: 16px 16px 16px 16px;
+    font-size: 16px;
+    border-radius: 12px;
+    min-height: 52px;
+  }
+
+  /* --- Emergency overlay: full-screen mobile enhancements --- */
+  .emergency-overlay-mobile .emergency-content {
+    padding: 24px 20px;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .emergency-overlay-mobile .emergency-title {
+    font-size: 26px;
+    letter-spacing: 2px;
+  }
+
+  .emergency-overlay-mobile .emergency-buttons {
+    width: 100%;
+    padding: 0 8px;
+  }
+
+  .emergency-overlay-mobile .emergency-buttons button {
+    min-height: 56px;
+    font-size: 17px;
+  }
+
+  .emergency-direction-arrows {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin: 20px 0;
+    font-size: 32px;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  /* --- Analytics & Settings: mobile spacing --- */
+  .mobile-page-padding {
+    padding: 20px 16px;
+    padding-bottom: 180px;
+    padding-bottom: calc(140px + env(safe-area-inset-bottom, 0));
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+
+  .mobile-main.mobile-page-padding {
+    padding-bottom: 180px;
+    padding-bottom: calc(140px + env(safe-area-inset-bottom, 0));
+  }
+
+  /* Settings/Profile: extra space so Save button is never behind tab bar */
+  .mobile-settings-page {
+    padding-bottom: 200px !important;
+    padding-bottom: calc(160px + env(safe-area-inset-bottom, 0)) !important;
+  }
+
+  /* Settings: align toggles and dropdown in one column on the right */
+  .settings-card .setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .settings-card .setting-row > div:first-child {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .settings-card .setting-row .setting-control {
+    flex-shrink: 0;
+    min-width: 44px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .settings-card .setting-row select.setting-select {
+    min-width: 100px;
+    text-align: right;
+    text-align-last: right;
+    padding: 8px 12px;
+  }
+
+  .settings-card .setting-control button {
+    min-height: 24px;
+    min-width: 44px;
+  }
+
+  /* Smooth scrolling */
+  .mobile-main,
+  .mobile-home-screen,
+  .scroll-y {
+    -webkit-overflow-scrolling: touch;
+  }
+}

@@ -1,4 +1,5 @@
 const http = require('http');
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -16,6 +17,8 @@ const logger = require('./middleware/logger');
 
 const app = express();
 const server = http.createServer(app);
+
+app.set('trust proxy', 1);
 
 // ───────── Global Middleware ─────────
 
@@ -43,6 +46,31 @@ app.use(rateLimit({
 // ───────── API Routes ─────────
 
 app.use('/api/v1', routes);
+
+// ───────── Serve React Build ─────────
+
+const PROD_BUILD = '/home/testatozas-casai/htdocs/casai.testatozas.in/build';
+const DEV_BUILD = path.join(__dirname, '..', 'client', 'build');
+const BUILD_PATH = process.env.BUILD_PATH || PROD_BUILD;
+
+const fs = require('fs');
+if (fs.existsSync(BUILD_PATH)) {
+  app.use(express.static(BUILD_PATH));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next();
+    res.sendFile(path.join(BUILD_PATH, 'index.html'));
+  });
+  logger.info(`Serving React build from: ${BUILD_PATH}`);
+} else if (fs.existsSync(DEV_BUILD)) {
+  app.use(express.static(DEV_BUILD));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next();
+    res.sendFile(path.join(DEV_BUILD, 'index.html'));
+  });
+  logger.info(`Serving React build from: ${DEV_BUILD}`);
+} else {
+  logger.warn(`No build folder found at ${BUILD_PATH} or ${DEV_BUILD}`);
+}
 
 // ───────── Error Handling ─────────
 
