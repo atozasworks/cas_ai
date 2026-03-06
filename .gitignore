@@ -1,37 +1,51 @@
 # Dependencies
 node_modules/
+client/node_modules/
+server/node_modules/
 
-# Environment
+# Environment files
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+client/.env
+client/.env.*
+server/.env
+server/.env.*
 
 # Build output
 client/build/
+server/dist/
 dist/
+build/
 
 # Logs
-server/logs/*.log
+logs/
+server/logs/
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# Cache / temp
+.cache/
+.tmp/
+tmp/
 
 # OS files
+.DS_Store
 Thumbs.db
 Desktop.ini
-.DS_Store
 
-# IDE
+# IDE/editor
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# Redis dump
+# Runtime data
 dump.rdb
-
-# Coverage
-coverage/
-
-# Misc
-*.tgz
-.cache/

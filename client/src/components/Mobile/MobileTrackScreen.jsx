@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSocket } from '../../context/SocketContext';
+import { useAuth } from '../../context/AuthContext';
+import { vehicleAPI } from '../../services/api';
 import TrackingMap from '../Map/TrackingMap';
 import ProximityRadar from '../Dashboard/ProximityRadar';
 import VehicleSelector from '../Dashboard/VehicleSelector';
@@ -8,10 +10,28 @@ import { formatSpeed } from '../../utils/helpers';
 import { FiWifi, FiWifiOff, FiNavigation } from 'react-icons/fi';
 
 export default function MobileTrackScreen() {
-  const { riskData, nearbyVehicles, lastPosition, connected } = useSocket();
+  const { riskData, nearbyVehicles, lastPosition, connected, activeVehicleId } = useSocket();
+  const { user } = useAuth();
+  const [vehicles, setVehicles] = useState([]);
+  const [allMapVehicles, setAllMapVehicles] = useState([]);
   const [showVehicles, setShowVehicles] = useState(false);
   const [showRadar, setShowRadar] = useState(false);
 
+  useEffect(() => {
+    const load = () => {
+      vehicleAPI.getAll()
+        .then((data) => setVehicles(data.vehicles || []))
+        .catch(() => {});
+      vehicleAPI.getAllForMap()
+        .then((data) => setAllMapVehicles(data.vehicles || []))
+        .catch(() => {});
+    };
+    load();
+    const interval = setInterval(load, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const activeVehicle = vehicles.find((v) => (v._id || v.id) === activeVehicleId);
   const riskLevel = riskData?.riskLevel || 'low';
   const riskScore = riskData?.finalRisk ?? 0;
   const speed = lastPosition?.speed ?? 0;
@@ -20,7 +40,7 @@ export default function MobileTrackScreen() {
   return (
     <div className="mobile-track-screen">
       <div className="mobile-track-map-wrap">
-        <TrackingMap />
+        <TrackingMap userName={user?.name} activeVehicle={activeVehicle} vehicles={vehicles} allMapVehicles={allMapVehicles} />
       </div>
 
       <div className="mobile-track-floating">
@@ -93,7 +113,20 @@ export default function MobileTrackScreen() {
       </div>
 
       {showRadar && (
-        <div className="mobile-track-radar-float">
+        <div className="mobile-track-radar-float" style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => setShowRadar(false)}
+            style={{
+              position: 'absolute', top: 4, right: 4, zIndex: 1,
+              background: 'rgba(0,0,0,0.15)', border: 'none', borderRadius: '50%',
+              width: 24, height: 24, minHeight: 24, minWidth: 24,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--text-muted)', fontSize: 14, cursor: 'pointer',
+            }}
+          >
+            ✕
+          </button>
           <ProximityRadar nearbyVehicles={nearbyVehicles} riskLevel={riskLevel} />
         </div>
       )}

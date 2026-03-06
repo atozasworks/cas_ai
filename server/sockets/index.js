@@ -140,7 +140,14 @@ async function handleLocationUpdate(socket, data) {
     config.risk.proximityThresholdMeters
   );
 
-  if (nearby.length === 0) {
+  // Filter out ALL vehicles owned by this user (not just the active one)
+  const Vehicle = require('../models/Vehicle');
+  const User = require('../models/User');
+  const userVehicles = await Vehicle.find({ owner: userId }).select('_id').lean();
+  const userVehicleIds = new Set(userVehicles.map((v) => v._id.toString()));
+  const filteredNearby = nearby.filter((v) => !userVehicleIds.has(v.vehicleId.toString()));
+
+  if (filteredNearby.length === 0) {
     socket.emit('risk:clear', { timestamp: Date.now() });
     return;
   }
@@ -162,18 +169,39 @@ async function handleLocationUpdate(socket, data) {
     roadType: roadType || 'unknown',
   };
 
-  const decision = await aiDecisionService.makeDecision(ownVehicle, nearby, context);
+  const decision = await aiDecisionService.makeDecision(ownVehicle, filteredNearby, context);
 
-  // 5. Emit risk alert to client
+  // 5. Enrich nearby vehicles with details (plate, type, make, model, owner name)
+  const enrichedNearby = await Promise.all(
+    filteredNearby.map(async (v) => {
+      const base = {
+        vehicleId: v.vehicleId,
+        latitude: v.latitude,
+        longitude: v.longitude,
+        distance: v.distance,
+        speed: v.speed,
+      };
+      try {
+        const vehicle = await Vehicle.findById(v.vehicleId).lean();
+        if (vehicle) {
+          base.plateNumber = vehicle.plateNumber;
+          base.type = vehicle.type;
+          base.make = vehicle.make;
+          base.model = vehicle.model;
+          if (vehicle.owner) {
+            const owner = await User.findById(vehicle.owner).select('name').lean();
+            if (owner) base.ownerName = owner.name;
+          }
+        }
+      } catch (_) { /* ignore lookup errors */ }
+      return base;
+    })
+  );
+
+  // Emit risk alert to client
   socket.emit('risk:update', {
     ...decision,
-    nearbyVehicles: nearby.map((v) => ({
-      vehicleId: v.vehicleId,
-      latitude: v.latitude,
-      longitude: v.longitude,
-      distance: v.distance,
-      speed: v.speed,
-    })),
+    nearbyVehicles: enrichedNearby,
   });
 
   // 6. Persist high-risk events
