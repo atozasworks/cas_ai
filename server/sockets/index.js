@@ -237,12 +237,20 @@ async function handleLocationUpdate(socket, data) {
   const alertMeters = config.risk.proximityAlertMeters ?? 10;
   const closestAssessment = decision.assessments?.[0];
   const closestDistance = closestAssessment?.components?.distance;
+  const closestDirection = closestAssessment?.components?.direction || null;
   const withinAlertRange = closestDistance != null && closestDistance <= alertMeters && enrichedNearby.length > 0;
   if (withinAlertRange) {
     const closest = { ...enrichedNearby[0], distance: closestDistance };
     // Vehicle nearby: no Groq AI message — only vehicle details + direction/action from risk engine
+    let closest = enrichedNearby[0];
+    if (closestAssessment?.vehicleId) {
+      const matched = enrichedNearby.find((v) => String(v.vehicleId) === String(closestAssessment.vehicleId));
+      if (matched) closest = matched;
+    }
+
     socket.emit('alert:vehicle-nearby', {
-      vehicle: closest,
+      vehicle: { ...closest, distance: closestDistance, direction: closestDirection },
+      direction: closestDirection,
       distance: closestDistance,
       message: `Vehicle within ${Math.round(closestDistance)}m`,
       zoneType: zoneType || null,

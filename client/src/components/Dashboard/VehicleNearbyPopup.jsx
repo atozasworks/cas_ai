@@ -1,7 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSocket } from '../../context/SocketContext';
 import { formatDistance } from '../../utils/helpers';
-import { FiAlertTriangle, FiX, FiNavigation } from 'react-icons/fi';
+import { FiAlertTriangle, FiX } from 'react-icons/fi';
 
 /** Play a short alert beep (works in mobile webview after user interaction) */
 function playAlertSound() {
@@ -17,6 +17,7 @@ function playAlertSound() {
     gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.3);
+
     // Second beep
     const o2 = audioContext.createOscillator();
     const g2 = audioContext.createGain();
@@ -33,16 +34,100 @@ function playAlertSound() {
   }
 }
 
-const SAFE_DIRECTION_LABELS = {
-  left: 'Left side',
-  right: 'Right side',
-  front: 'Ahead',
-  back: 'Behind',
+const DIRECTION_ACTION_MAP = {
+  LEFT: {
+    approachMessage: 'Vehicle approaching from LEFT',
+    recommendedAction: 'MOVE RIGHT IMMEDIATELY',
+    voiceMessage: 'Warning. Vehicle approaching from the left. Please move right immediately.',
+  },
+  RIGHT: {
+    approachMessage: 'Vehicle approaching from RIGHT',
+    recommendedAction: 'MOVE LEFT IMMEDIATELY',
+    voiceMessage: 'Warning. Vehicle approaching from the right. Please move left immediately.',
+  },
+  FRONT: {
+    approachMessage: 'Vehicle detected in FRONT',
+    recommendedAction: 'SLOW DOWN OR MOVE BACK',
+    voiceMessage: 'Warning. Vehicle detected in front. Please slow down immediately.',
+  },
+  BACK: {
+    approachMessage: 'Vehicle approaching from BACK',
+    recommendedAction: 'MOVE FORWARD CAREFULLY',
+    voiceMessage: 'Warning. Vehicle approaching from behind. Please move forward carefully.',
+  },
 };
+
+const FALLBACK_SUGGESTION = {
+  direction: null,
+  approachMessage: 'Vehicle detected nearby',
+  recommendedAction: 'SLOW DOWN AND MAINTAIN SAFE DISTANCE',
+  voiceMessage: 'Warning. Vehicle nearby. Please slow down and maintain a safe distance.',
+};
+
+function normalizeDirection(rawDirection) {
+  if (!rawDirection || typeof rawDirection !== 'string') return null;
+
+  const value = rawDirection.trim().toUpperCase();
+  if (value === 'LEFT' || value === 'RIGHT' || value === 'FRONT' || value === 'BACK') {
+    return value;
+  }
+
+  return null;
+}
+
+function resolveDirection(vehicleNearbyAlert, riskData) {
+  const directDirection = normalizeDirection(
+    vehicleNearbyAlert?.direction || vehicleNearbyAlert?.vehicle?.direction
+  );
+  if (directDirection) return directDirection;
+
+  const alertVehicleId = vehicleNearbyAlert?.vehicle?.vehicleId
+    || vehicleNearbyAlert?.vehicle?._id
+    || vehicleNearbyAlert?.vehicle?.id;
+
+  if (alertVehicleId && riskData?.assessments?.length) {
+    const matchedAssessment = riskData.assessments.find((assessment) => {
+      if (!assessment?.vehicleId) return false;
+      return String(assessment.vehicleId) === String(alertVehicleId);
+    });
+
+    const matchedDirection = normalizeDirection(matchedAssessment?.components?.direction);
+    if (matchedDirection) return matchedDirection;
+  }
+
+  return normalizeDirection(riskData?.assessments?.[0]?.components?.direction);
+}
+
+function buildSuggestion(direction) {
+  if (!direction || !DIRECTION_ACTION_MAP[direction]) {
+    return FALLBACK_SUGGESTION;
+  }
+
+  return {
+    direction,
+    ...DIRECTION_ACTION_MAP[direction],
+  };
+}
 
 export default function VehicleNearbyPopup() {
   const { vehicleNearbyAlert, dismissVehicleNearbyAlert, zoneAlert, dismissZoneAlert, riskData } = useSocket();
   const hasPlayedSound = useRef(false);
+  const voiceIntervalRef = useRef(null);
+  const [aiSuggestion, setAiSuggestion] = useState(FALLBACK_SUGGESTION);
+  const isPopupVisible = Boolean(vehicleNearbyAlert);
+
+  const speakMessage = useCallback((message) => {
+    if (!message || typeof window === 'undefined') return;
+    if (!window.speechSynthesis || typeof window.SpeechSynthesisUtterance === 'undefined') return;
+
+    window.speechSynthesis.cancel();
+    const utterance = new window.SpeechSynthesisUtterance(message);
+    utterance.lang = 'en-US';
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    window.speechSynthesis.speak(utterance);
+  }, []);
 
   const showVehicle = !!vehicleNearbyAlert;
   const showZone = !!zoneAlert;
@@ -61,6 +146,44 @@ export default function VehicleNearbyPopup() {
   }, [vehicleNearbyAlert, zoneAlert]);
 
   if (!showVehicle && !showZone) return null;
+  useEffect(() => {
+    if (!isPopupVisible) {
+      setAiSuggestion(FALLBACK_SUGGESTION);
+      return;
+    }
+
+    const direction = resolveDirection(vehicleNearbyAlert, riskData);
+    setAiSuggestion(buildSuggestion(direction));
+  }, [isPopupVisible, vehicleNearbyAlert, riskData]);
+
+  useEffect(() => {
+    if (!isPopupVisible || !aiSuggestion?.voiceMessage) {
+      if (voiceIntervalRef.current) {
+        clearInterval(voiceIntervalRef.current);
+        voiceIntervalRef.current = null;
+      }
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      return;
+    }
+
+    const playVoiceAlert = () => speakMessage(aiSuggestion.voiceMessage);
+    playVoiceAlert();
+    voiceIntervalRef.current = setInterval(playVoiceAlert, 5000);
+
+    return () => {
+      if (voiceIntervalRef.current) {
+        clearInterval(voiceIntervalRef.current);
+        voiceIntervalRef.current = null;
+      }
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [isPopupVisible, aiSuggestion?.voiceMessage, speakMessage]);
+
+  if (!vehicleNearbyAlert) return null;
 
   // Zone-only popup (school, hospital, junction)
   if (showZone) {
@@ -145,10 +268,31 @@ export default function VehicleNearbyPopup() {
                 </div>
               )}
               {actionLabel && <div className="vehicle-nearby-popup-safe-action">{actionLabel}</div>}
+          {aiSuggestion?.direction && (
+            <div className="vehicle-nearby-popup-row">
+              <span className="vehicle-nearby-popup-label">Direction</span>
+              <span className="vehicle-nearby-popup-value">{aiSuggestion.direction}</span>
             </div>
+          )}
+        </div>
+
+        <div className="vehicle-nearby-popup-ai">
+          <div className="vehicle-nearby-popup-ai-title">🤖 AI Safety Suggestion</div>
+          <div className="vehicle-nearby-popup-ai-message">{aiSuggestion.approachMessage}</div>
+          <div className="vehicle-nearby-popup-ai-action">
+            Recommended action: <strong>{aiSuggestion.recommendedAction}</strong>
           </div>
         )}
         <button type="button" className="vehicle-nearby-popup-dismiss" onClick={dismiss}>OK, got it</button>
+        </div>
+
+        <button
+          type="button"
+          className="vehicle-nearby-popup-dismiss"
+          onClick={dismissVehicleNearbyAlert}
+        >
+          OK, got it
+        </button>
       </div>
     </div>
   );
