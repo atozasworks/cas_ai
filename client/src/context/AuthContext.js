@@ -44,6 +44,9 @@ export function AuthProvider({ children }) {
     localStorage.setItem('cas_user', JSON.stringify(data.user));
     setToken(data.token);
     setUser(data.user);
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('cas_show_welcome_splash', '1');
+    }
     return data;
   };
 

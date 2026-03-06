@@ -12,6 +12,7 @@ export function SocketProvider({ children }) {
   const [emergency, setEmergency] = useState(null);
   const [behaviorAlert, setBehaviorAlert] = useState(null);
   const [vehicleNearbyAlert, setVehicleNearbyAlert] = useState(null);
+  const [zoneAlert, setZoneAlert] = useState(null);
   const [activeVehicleId, setActiveVehicleId] = useState(null);
   const [lastPosition, setLastPosition] = useState(null);
   const gpsIntervalRef = useRef(null);
@@ -33,7 +34,11 @@ export function SocketProvider({ children }) {
       const nearby = data.nearbyVehicles || [];
       if (dist != null && dist <= alertMeters && nearby.length > 0) {
         const closest = { ...nearby[0], distance: dist };
-        setVehicleNearbyAlert({ vehicle: closest, distance: dist, message: `Vehicle within ${Math.round(dist)}m`, playSound: true });
+        setVehicleNearbyAlert({
+          vehicle: closest, distance: dist, message: `Vehicle within ${Math.round(dist)}m`,
+          zoneType: data.zoneType || null, zoneLabel: data.zoneLabel || null,
+          playSound: true,
+        });
       }
     });
 
@@ -41,6 +46,7 @@ export function SocketProvider({ children }) {
       setRiskData(null);
       setNearbyVehicles([]);
       setVehicleNearbyAlert(null);
+      setZoneAlert(null);
     });
 
     socket.on('emergency:crash-detected', (data) => {
@@ -63,6 +69,12 @@ export function SocketProvider({ children }) {
 
     socket.on('alert:vehicle-nearby', (data) => {
       setVehicleNearbyAlert(data);
+      setZoneAlert(null);
+    });
+
+    socket.on('alert:zone', (data) => {
+      setZoneAlert(data);
+      setVehicleNearbyAlert(null);
     });
 
     return () => {
@@ -129,6 +141,8 @@ export function SocketProvider({ children }) {
       behaviorAlert,
       vehicleNearbyAlert,
       dismissVehicleNearbyAlert: () => setVehicleNearbyAlert(null),
+      zoneAlert,
+      dismissZoneAlert: () => setZoneAlert(null),
       activeVehicleId,
       startTracking,
       stopTracking,
