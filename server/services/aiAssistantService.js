@@ -129,4 +129,127 @@ function generateOfflineResponse(userMessage, context) {
   return 'Drive safely: maintain awareness, follow traffic rules, keep a safe following distance, and avoid distractions.';
 }
 
-module.exports = { chat, generateOfflineResponse };
+/**
+ * Analyze map and location with Groq AI to produce a short, correct popup recommendation.
+ * Supports zone context (school, hospital, junction) for driving-friendly messages.
+ * @param {Object} ctx - { ownVehicle, closestVehicle, decision, roadType, trafficDensity, zoneType, zoneLabel }
+ * @returns {Promise<string>} One short sentence for the driver.
+ */
+async function analyzeMapAndLocationForPopup(ctx) {
+  const providerCfg = getProviderConfig();
+  const {
+    ownVehicle = {}, closestVehicle = {}, decision = {},
+    roadType = 'unknown', trafficDensity = 'unknown',
+    zoneType = null, zoneLabel = null,
+  } = ctx;
+
+  const fallback = () => {
+    if (zoneLabel) return `${zoneLabel} — Reduce speed and drive carefully.`;
+    const dir = decision.escapePath?.safestDirection;
+    const dirLabel = dir ? (dir === 'left' ? 'Left' : dir === 'right' ? 'Right' : dir === 'front' ? 'Ahead' : 'Behind') : '';
+    if (decision.actionLabel) return `${decision.actionLabel}${dirLabel ? ` — move toward ${dirLabel} side.` : ''}`;
+    return dirLabel ? `Move your vehicle to the ${dirLabel} side to stay safe.` : 'Reduce speed and stay alert.';
+  };
+
+  if (!providerCfg.key) return fallback();
+
+  const zoneLine = (zoneType && zoneLabel) ? `- Current zone: ${zoneLabel}. Mention this in your message.` : '';
+  const userContent = [
+    'Map and location context for a real-time collision avoidance popup:',
+    `- Your vehicle: speed ${ownVehicle.speed ?? 0} km/h, heading ${ownVehicle.heading ?? 0}°.`,
+    `- Nearby vehicle: ${closestVehicle.distance != null ? `${Math.round(closestVehicle.distance)} m` : 'close'}, direction: ${closestVehicle.direction ?? 'nearby'}.`,
+    `- Recommended action: ${decision.actionLabel ?? 'maintain_speed'}. Safest direction: ${decision.escapePath?.safestDirection ?? 'unknown'}.`,
+    `- Road: ${roadType}, traffic: ${trafficDensity}.`,
+    zoneLine,
+    'Reply with exactly ONE short sentence (under 100 characters) telling the driver what to do. If there is a zone (school/hospital/junction), start with that (e.g. "School zone — reduce speed."). Be specific. No quotes, no preamble.',
+  ].filter(Boolean).join('\n');
+
+  const systemPrompt = 'You are a driving safety assistant. Given real-time map and location data (and optional zone: school, hospital, junction), output only one brief, clear, driving-friendly instruction. No explanation, no bullet points.';
+
+  try {
+    const response = await fetch(providerCfg.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${providerCfg.key}`,
+      },
+      body: JSON.stringify({
+        model: providerCfg.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userContent },
+        ],
+        max_tokens: 120,
+        temperature: 0.3,
+      }),
+    });
+
+    if (!response.ok) throw new Error(`Groq API returned ${response.status}`);
+
+    const data = await response.json();
+    const text = (data.choices?.[0]?.message?.content || '').trim();
+    if (text.length > 0 && text.length <= 200) return text;
+    return fallback();
+  } catch (err) {
+    logger.warn('AI popup analysis failed, using fallback:', err.message);
+    return fallback();
+  }
+}
+
+/**
+ * Get a driving-friendly AI message for zone-only alert (school, hospital, junction).
+ * Map and GPS are analyzed to produce the correct message.
+ * @param {Object} ctx - { zoneType, zoneLabel, speed, roadType, trafficDensity }
+ * @returns {Promise<string>}
+ */
+async function getZoneAlertMessage(ctx) {
+  const providerCfg = getProviderConfig();
+  const { zoneType, zoneLabel, speed = 0, roadType = 'unknown', trafficDensity = 'unknown' } = ctx;
+
+  const fallback = () => {
+    if (zoneType === 'school') return 'School zone — Reduce speed and watch for children.';
+    if (zoneType === 'hospital') return 'Hospital zone — Drive quietly and yield to ambulances.';
+    if (zoneType === 'junction') return 'Junction ahead — Slow down and check both sides.';
+    return `${zoneLabel || 'Caution'} — Reduce speed and drive carefully.`;
+  };
+
+  if (!providerCfg.key || !zoneLabel) return fallback();
+
+  const userContent = [
+    `Driver is entering/near: ${zoneLabel}. GPS and map context:`,
+    `- Speed: ${speed} km/h. Road: ${roadType}. Traffic: ${trafficDensity}.`,
+    'Reply with exactly ONE short, driving-friendly sentence (under 80 characters) for a popup. Start with the zone name (e.g. "School zone — reduce speed."). No quotes.',
+  ].join('\n');
+
+  const systemPrompt = 'You are a driving safety assistant. Output only one brief, friendly message for the driver. No explanation.';
+
+  try {
+    const response = await fetch(providerCfg.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${providerCfg.key}`,
+      },
+      body: JSON.stringify({
+        model: providerCfg.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userContent },
+        ],
+        max_tokens: 100,
+        temperature: 0.3,
+      }),
+    });
+
+    if (!response.ok) throw new Error(`API returned ${response.status}`);
+    const data = await response.json();
+    const text = (data.choices?.[0]?.message?.content || '').trim();
+    if (text.length > 0 && text.length <= 200) return text;
+    return fallback();
+  } catch (err) {
+    logger.warn('AI zone message failed:', err.message);
+    return fallback();
+  }
+}
+
+module.exports = { chat, generateOfflineResponse, analyzeMapAndLocationForPopup, getZoneAlertMessage };

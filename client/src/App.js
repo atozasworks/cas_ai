@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import AuthPage from './components/Common/AuthPage';
+import SplashScreen from './components/Mobile/SplashScreen';
 import Navbar from './components/Common/Navbar';
 import BottomNav from './components/Mobile/BottomNav';
 import DashboardPage from './components/Dashboard/DashboardPage';
@@ -32,14 +33,41 @@ function TrackRoute() {
   return <Navigate to="/" replace />;
 }
 
+function MobileLoginGate() {
+  const { isAuthenticated } = useAuth();
+  const isMobile = useIsMobile();
+  const [splashDone, setSplashDone] = useState(false);
+
+  if (isAuthenticated) return null; // redirect handled by parent
+  if (isMobile && !splashDone) {
+    return <SplashScreen onFinish={() => setSplashDone(true)} />;
+  }
+  return <AuthPage />;
+}
+
 function AppRoutes() {
   const { isAuthenticated, loading } = useAuth();
+  const isMobile = useIsMobile();
+  const [showWelcomeSplash, setShowWelcomeSplash] = useState(() =>
+    typeof window !== 'undefined' && window.sessionStorage.getItem('cas_show_welcome_splash') === '1'
+  );
 
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
         <div className="spinner" />
       </div>
+    );
+  }
+
+  if (isAuthenticated && isMobile && showWelcomeSplash) {
+    return (
+      <SplashScreen
+        onFinish={() => {
+          if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('cas_show_welcome_splash');
+          setShowWelcomeSplash(false);
+        }}
+      />
     );
   }
 
@@ -51,7 +79,7 @@ function AppRoutes() {
       {isAuthenticated && <BottomNav />}
       <Routes>
         <Route path="/login" element={
-          isAuthenticated ? <Navigate to="/" replace /> : <AuthPage />
+          isAuthenticated ? <Navigate to="/" replace /> : <MobileLoginGate />
         } />
         <Route path="/" element={
           <PrivateRoute><DashboardPage /></PrivateRoute>

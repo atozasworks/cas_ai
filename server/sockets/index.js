@@ -20,6 +20,8 @@ const { getRedisClient, getRedisSubscriber } = require('../config/redis');
 const locationService = require('../services/locationService');
 const aiDecisionService = require('../services/aiDecisionService');
 const behaviorService = require('../services/behaviorAnalyticsService');
+const aiAssistantService = require('../services/aiAssistantService');
+const poiService = require('../services/poiService');
 const RiskEvent = require('../models/RiskEvent');
 const Incident = require('../models/Incident');
 const config = require('../config');
@@ -134,7 +136,10 @@ async function handleLocationUpdate(socket, data) {
     socket.emit('alert:behavior', { type: 'overspeed', message: 'Speed limit exceeded' });
   }
 
-  // 3. Find nearby vehicles
+  // 3. Map + GPS: detect nearby zone (school, hospital, junction) for driving-friendly alerts
+  const { zoneType, zoneLabel } = await poiService.getNearbyZone(latitude, longitude, 150);
+
+  // 4. Find nearby vehicles
   const nearby = await locationService.getNearbyVehicles(
     vehicleId, latitude, longitude,
     config.risk.proximityThresholdMeters
@@ -148,11 +153,32 @@ async function handleLocationUpdate(socket, data) {
   const filteredNearby = nearby.filter((v) => !userVehicleIds.has(v.vehicleId.toString()));
 
   if (filteredNearby.length === 0) {
-    socket.emit('risk:clear', { timestamp: Date.now() });
+    socket.emit('risk:clear', { timestamp: Date.now(), zoneType: null, zoneLabel: null }); // keep zone in clear for client
+    if (zoneType) {
+      socket.emit('risk:update', { zoneType, zoneLabel, nearbyVehicles: [], finalRisk: 0, riskLevel: 'low', timestamp: Date.now() });
+    }
+    // Zone-only alert when entering school/hospital/junction (no other vehicle nearby)
+    if (zoneType && zoneLabel && socket.lastZoneType !== zoneType) {
+      socket.lastZoneType = zoneType;
+      try {
+        const aiZoneMessage = await aiAssistantService.getZoneAlertMessage({
+          zoneType, zoneLabel, speed, roadType: roadType || 'unknown', trafficDensity: trafficDensity || 'unknown',
+        });
+        socket.emit('alert:zone', { zoneType, zoneLabel, aiRecommendation: aiZoneMessage, playSound: true });
+      } catch (_) {
+        socket.emit('alert:zone', {
+          zoneType, zoneLabel,
+          aiRecommendation: `${zoneLabel} — Reduce speed and drive carefully.`,
+          playSound: true,
+        });
+      }
+    } else if (!zoneType) socket.lastZoneType = null;
     return;
   }
 
-  // 4. AI decision pipeline
+  if (!zoneType) socket.lastZoneType = null;
+
+  // 5. AI decision pipeline
   const ownVehicle = { latitude, longitude, speed, heading, acceleration: acceleration || 0 };
   const driverScore = await behaviorService.getOrCreateDriverScore(userId);
   const context = {
@@ -171,7 +197,7 @@ async function handleLocationUpdate(socket, data) {
 
   const decision = await aiDecisionService.makeDecision(ownVehicle, filteredNearby, context);
 
-  // 5. Enrich nearby vehicles with details (plate, type, make, model, owner name)
+  // 6. Enrich nearby vehicles with details (plate, type, make, model, owner name)
   const enrichedNearby = await Promise.all(
     filteredNearby.map(async (v) => {
       const base = {
@@ -198,10 +224,12 @@ async function handleLocationUpdate(socket, data) {
     })
   );
 
-  // Emit risk alert to client
+  // Emit risk alert to client (include zone for map/GPS context)
   socket.emit('risk:update', {
     ...decision,
     nearbyVehicles: enrichedNearby,
+    zoneType: zoneType || null,
+    zoneLabel: zoneLabel || null,
   });
 
   // Emit popup + sound when closest vehicle is within PROXIMITY_ALERT_METERS (e.g. 10m)
@@ -212,6 +240,8 @@ async function handleLocationUpdate(socket, data) {
   const closestDirection = closestAssessment?.components?.direction || null;
   const withinAlertRange = closestDistance != null && closestDistance <= alertMeters && enrichedNearby.length > 0;
   if (withinAlertRange) {
+    const closest = { ...enrichedNearby[0], distance: closestDistance };
+    // Vehicle nearby: no Groq AI message — only vehicle details + direction/action from risk engine
     let closest = enrichedNearby[0];
     if (closestAssessment?.vehicleId) {
       const matched = enrichedNearby.find((v) => String(v.vehicleId) === String(closestAssessment.vehicleId));
@@ -223,11 +253,30 @@ async function handleLocationUpdate(socket, data) {
       direction: closestDirection,
       distance: closestDistance,
       message: `Vehicle within ${Math.round(closestDistance)}m`,
+      zoneType: zoneType || null,
+      zoneLabel: zoneLabel || null,
       playSound: true,
     });
   }
 
-  // 6. Persist high-risk events
+  // Zone-only: entering school/hospital/junction (when no vehicle-nearby popup is shown)
+  if (!withinAlertRange && zoneType && zoneLabel && socket.lastZoneType !== zoneType) {
+    socket.lastZoneType = zoneType;
+    try {
+      const aiZoneMessage = await aiAssistantService.getZoneAlertMessage({
+        zoneType, zoneLabel, speed, roadType: roadType || 'unknown', trafficDensity: trafficDensity || 'unknown',
+      });
+      socket.emit('alert:zone', { zoneType, zoneLabel, aiRecommendation: aiZoneMessage, playSound: true });
+    } catch (_) {
+      socket.emit('alert:zone', {
+        zoneType, zoneLabel,
+        aiRecommendation: `${zoneLabel} — Reduce speed and drive carefully.`,
+        playSound: true,
+      });
+    }
+  } else if (!zoneType) socket.lastZoneType = null;
+
+  // 7. Persist high-risk events
   if (decision.riskLevel === 'high') {
     const highestAssessment = decision.assessments[0];
 
@@ -275,7 +324,7 @@ async function handleLocationUpdate(socket, data) {
     }
   }
 
-  // 7. Broadcast position to nearby vehicles' rooms
+  // 8. Broadcast position to nearby vehicles' rooms
   for (const nearbyVehicle of nearby) {
     io.to(`vehicle:${nearbyVehicle.vehicleId}`).emit('nearby:update', {
       vehicleId,

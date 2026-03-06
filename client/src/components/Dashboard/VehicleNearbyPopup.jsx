@@ -110,7 +110,7 @@ function buildSuggestion(direction) {
 }
 
 export default function VehicleNearbyPopup() {
-  const { vehicleNearbyAlert, dismissVehicleNearbyAlert, riskData } = useSocket();
+  const { vehicleNearbyAlert, dismissVehicleNearbyAlert, zoneAlert, dismissZoneAlert, riskData } = useSocket();
   const hasPlayedSound = useRef(false);
   const voiceIntervalRef = useRef(null);
   const [aiSuggestion, setAiSuggestion] = useState(FALLBACK_SUGGESTION);
@@ -129,17 +129,23 @@ export default function VehicleNearbyPopup() {
     window.speechSynthesis.speak(utterance);
   }, []);
 
+  const showVehicle = !!vehicleNearbyAlert;
+  const showZone = !!zoneAlert;
+  const dismiss = showVehicle ? dismissVehicleNearbyAlert : dismissZoneAlert;
+
   useEffect(() => {
-    if (!vehicleNearbyAlert) {
+    const alert = vehicleNearbyAlert || zoneAlert;
+    if (!alert) {
       hasPlayedSound.current = false;
       return;
     }
-    if (vehicleNearbyAlert.playSound && !hasPlayedSound.current) {
+    if (alert.playSound && !hasPlayedSound.current) {
       playAlertSound();
       hasPlayedSound.current = true;
     }
-  }, [vehicleNearbyAlert]);
+  }, [vehicleNearbyAlert, zoneAlert]);
 
+  if (!showVehicle && !showZone) return null;
   useEffect(() => {
     if (!isPopupVisible) {
       setAiSuggestion(FALLBACK_SUGGESTION);
@@ -179,29 +185,45 @@ export default function VehicleNearbyPopup() {
 
   if (!vehicleNearbyAlert) return null;
 
+  // Zone-only popup (school, hospital, junction)
+  if (showZone) {
+    return (
+      <div className="vehicle-nearby-popup-overlay" onClick={dismiss} role="dialog" aria-modal="true" aria-labelledby="vehicle-nearby-title">
+        <div className="vehicle-nearby-popup-card vehicle-nearby-popup-card-zone" onClick={(e) => e.stopPropagation()}>
+          <div className="vehicle-nearby-popup-header vehicle-nearby-popup-header-zone">
+            <FiAlertTriangle className="vehicle-nearby-popup-icon" aria-hidden />
+            <h2 id="vehicle-nearby-title" className="vehicle-nearby-popup-title">{zoneAlert.zoneLabel}</h2>
+            <button type="button" className="vehicle-nearby-popup-close" onClick={dismiss} aria-label="Close"><FiX /></button>
+          </div>
+          <p className="vehicle-nearby-popup-message">
+            <span className="vehicle-nearby-popup-ai-message">{zoneAlert.aiRecommendation}</span>
+          </p>
+          <p className="vehicle-nearby-popup-zone-hint">Map &amp; GPS analyzed — drive safely.</p>
+          <button type="button" className="vehicle-nearby-popup-dismiss" onClick={dismiss}>OK, got it</button>
+        </div>
+      </div>
+    );
+  }
+
+  // Vehicle nearby popup (with optional zone)
   const v = vehicleNearbyAlert.vehicle || {};
   const distance = vehicleNearbyAlert.distance ?? v.distance ?? 0;
+  const zoneLabel = vehicleNearbyAlert.zoneLabel;
+  const safestDir = riskData?.escapePath?.safestDirection;
+  const actionLabel = riskData?.actionLabel;
+  const showSafeSection = safestDir || actionLabel;
 
   return (
-    <div className="vehicle-nearby-popup-overlay" onClick={dismissVehicleNearbyAlert} role="dialog" aria-modal="true" aria-labelledby="vehicle-nearby-title">
-      <div
-        className="vehicle-nearby-popup-card"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="vehicle-nearby-popup-overlay" onClick={dismiss} role="dialog" aria-modal="true" aria-labelledby="vehicle-nearby-title">
+      <div className="vehicle-nearby-popup-card" onClick={(e) => e.stopPropagation()}>
         <div className="vehicle-nearby-popup-header">
           <FiAlertTriangle className="vehicle-nearby-popup-icon" aria-hidden />
           <h2 id="vehicle-nearby-title" className="vehicle-nearby-popup-title">
-            Vehicle nearby
+            {zoneLabel ? `${zoneLabel} · Vehicle nearby` : 'Vehicle nearby'}
           </h2>
-          <button
-            type="button"
-            className="vehicle-nearby-popup-close"
-            onClick={dismissVehicleNearbyAlert}
-            aria-label="Close"
-          >
-            <FiX />
-          </button>
+          <button type="button" className="vehicle-nearby-popup-close" onClick={dismiss} aria-label="Close"><FiX /></button>
         </div>
+        {zoneLabel && <div className="vehicle-nearby-popup-zone-badge">{zoneLabel}</div>}
         <p className="vehicle-nearby-popup-message">
           Another vehicle is within <strong>{formatDistance(distance)}</strong> of your vehicle.
         </p>
@@ -234,6 +256,18 @@ export default function VehicleNearbyPopup() {
             <span className="vehicle-nearby-popup-label">Distance</span>
             <span className="vehicle-nearby-popup-value vehicle-nearby-popup-distance">{formatDistance(distance)}</span>
           </div>
+        </div>
+        {showSafeSection && (
+          <div className="vehicle-nearby-popup-safe">
+            <FiNavigation className="vehicle-nearby-popup-safe-icon" aria-hidden />
+            <div>
+              <div className="vehicle-nearby-popup-safe-title">To stay safe, move your vehicle</div>
+              {safestDir && (
+                <div className="vehicle-nearby-popup-safe-direction">
+                  → <strong>{SAFE_DIRECTION_LABELS[safestDir] || safestDir}</strong>
+                </div>
+              )}
+              {actionLabel && <div className="vehicle-nearby-popup-safe-action">{actionLabel}</div>}
           {aiSuggestion?.direction && (
             <div className="vehicle-nearby-popup-row">
               <span className="vehicle-nearby-popup-label">Direction</span>
@@ -248,6 +282,8 @@ export default function VehicleNearbyPopup() {
           <div className="vehicle-nearby-popup-ai-action">
             Recommended action: <strong>{aiSuggestion.recommendedAction}</strong>
           </div>
+        )}
+        <button type="button" className="vehicle-nearby-popup-dismiss" onClick={dismiss}>OK, got it</button>
         </div>
 
         <button
