@@ -204,6 +204,22 @@ async function handleLocationUpdate(socket, data) {
     nearbyVehicles: enrichedNearby,
   });
 
+  // Emit popup + sound when closest vehicle is within PROXIMITY_ALERT_METERS (e.g. 10m)
+  // Use risk engine's computed distance so it works with Redis and MongoDB
+  const alertMeters = config.risk.proximityAlertMeters ?? 10;
+  const closestAssessment = decision.assessments?.[0];
+  const closestDistance = closestAssessment?.components?.distance;
+  const withinAlertRange = closestDistance != null && closestDistance <= alertMeters && enrichedNearby.length > 0;
+  if (withinAlertRange) {
+    const closest = { ...enrichedNearby[0], distance: closestDistance };
+    socket.emit('alert:vehicle-nearby', {
+      vehicle: closest,
+      distance: closestDistance,
+      message: `Vehicle within ${Math.round(closestDistance)}m`,
+      playSound: true,
+    });
+  }
+
   // 6. Persist high-risk events
   if (decision.riskLevel === 'high') {
     const highestAssessment = decision.assessments[0];
