@@ -10,6 +10,7 @@ import DashboardPage from './components/Dashboard/DashboardPage';
 import AnalyticsPage from './components/Analytics/AnalyticsPage';
 import SettingsPage from './components/Dashboard/SettingsPage';
 import EmergencyOverlay from './components/Emergency/EmergencyOverlay';
+import VehicleNearbyPopup from './components/Dashboard/VehicleNearbyPopup';
 import MobileTrackScreen from './components/Mobile/MobileTrackScreen';
 import { useIsMobile } from './hooks/useIsMobile';
 
@@ -46,6 +47,7 @@ function AppRoutes() {
     <>
       {isAuthenticated && <Navbar />}
       {isAuthenticated && <EmergencyOverlay />}
+      {isAuthenticated && <VehicleNearbyPopup />}
       {isAuthenticated && <BottomNav />}
       <Routes>
         <Route path="/login" element={

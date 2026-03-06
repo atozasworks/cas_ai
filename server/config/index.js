@@ -44,6 +44,8 @@ const config = {
   risk: {
     proximityThresholdMeters: parseFloat(process.env.PROXIMITY_THRESHOLD_METERS) || 500,
     criticalDistanceMeters: parseFloat(process.env.CRITICAL_DISTANCE_METERS) || 20,
+    /** Distance (m) at which to show popup + sound alert when another vehicle is nearby */
+    proximityAlertMeters: parseFloat(process.env.PROXIMITY_ALERT_METERS) || 10,
     gpsUpdateIntervalMs: parseInt(process.env.GPS_UPDATE_INTERVAL_MS, 10) || 3000,
     weights: {
       proximity: parseFloat(process.env.WEIGHT_PROXIMITY) || 0.35,
