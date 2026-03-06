@@ -29,11 +29,24 @@ export function SocketProvider({ children }) {
       setNearbyVehicles(data.nearbyVehicles || []);
       // Show popup from risk data when closest vehicle is within 10m (fallback if event missed)
       const alertMeters = 10;
-      const dist = data.assessments?.[0]?.components?.distance;
+      const topAssessment = data.assessments?.[0];
+      const dist = topAssessment?.components?.distance;
+      const direction = topAssessment?.components?.direction || null;
       const nearby = data.nearbyVehicles || [];
       if (dist != null && dist <= alertMeters && nearby.length > 0) {
-        const closest = { ...nearby[0], distance: dist };
-        setVehicleNearbyAlert({ vehicle: closest, distance: dist, message: `Vehicle within ${Math.round(dist)}m`, playSound: true });
+        let closest = nearby[0];
+        if (topAssessment?.vehicleId) {
+          const matched = nearby.find((v) => String(v.vehicleId) === String(topAssessment.vehicleId));
+          if (matched) closest = matched;
+        }
+
+        setVehicleNearbyAlert({
+          vehicle: { ...closest, distance: dist, direction },
+          direction,
+          distance: dist,
+          message: `Vehicle within ${Math.round(dist)}m`,
+          playSound: true,
+        });
       }
     });
 
