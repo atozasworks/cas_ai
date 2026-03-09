@@ -28,17 +28,15 @@ export function SocketProvider({ children }) {
     socket.on('risk:update', (data) => {
       setRiskData(data);
       setNearbyVehicles(data.nearbyVehicles || []);
-      // Show popup from risk data when closest vehicle is within 10m (fallback if event missed)
+
+      // Fallback popup if dedicated event is missed
       const alertMeters = 10;
       const topAssessment = data.assessments?.[0];
       const dist = topAssessment?.components?.distance;
       const direction = topAssessment?.components?.direction || null;
       const nearby = data.nearbyVehicles || [];
+
       if (dist != null && dist <= alertMeters && nearby.length > 0) {
-        const closest = { ...nearby[0], distance: dist };
-        setVehicleNearbyAlert({
-          vehicle: closest, distance: dist, message: `Vehicle within ${Math.round(dist)}m`,
-          zoneType: data.zoneType || null, zoneLabel: data.zoneLabel || null,
         let closest = nearby[0];
         if (topAssessment?.vehicleId) {
           const matched = nearby.find((v) => String(v.vehicleId) === String(topAssessment.vehicleId));
@@ -50,8 +48,11 @@ export function SocketProvider({ children }) {
           direction,
           distance: dist,
           message: `Vehicle within ${Math.round(dist)}m`,
+          zoneType: data.zoneType || null,
+          zoneLabel: data.zoneLabel || null,
           playSound: true,
         });
+        setZoneAlert(null);
       }
     });
 
@@ -132,7 +133,7 @@ export function SocketProvider({ children }) {
 
     sendGPS();
     gpsIntervalRef.current = setInterval(sendGPS, 3000);
-  }, [user]);
+  }, [user, lastPosition]);
 
   const stopTracking = useCallback(() => {
     if (gpsIntervalRef.current) {
@@ -143,6 +144,8 @@ export function SocketProvider({ children }) {
     setRiskData(null);
     setNearbyVehicles([]);
     setLastPosition(null);
+    setVehicleNearbyAlert(null);
+    setZoneAlert(null);
   }, []);
 
   return (
