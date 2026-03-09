@@ -240,7 +240,6 @@ async function handleLocationUpdate(socket, data) {
   const closestDirection = closestAssessment?.components?.direction || null;
   const withinAlertRange = closestDistance != null && closestDistance <= alertMeters && enrichedNearby.length > 0;
   if (withinAlertRange) {
-    const closest = { ...enrichedNearby[0], distance: closestDistance };
     // Vehicle nearby: no Groq AI message — only vehicle details + direction/action from risk engine
     let closest = enrichedNearby[0];
     if (closestAssessment?.vehicleId) {
