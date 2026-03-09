@@ -141,6 +141,15 @@ export default function VehicleNearbyPopup() {
     window.speechSynthesis.speak(utterance);
   }, []);
 
+  const handleEmergencyDial = useCallback((number) => {
+    window.location.href = `tel:${number}`;
+  }, []);
+
+  const handleEmergencyNotify = useCallback((number, message) => {
+    const text = encodeURIComponent(message || 'Emergency alert from Collision Avoidance System.');
+    window.location.href = `sms:${number}?body=${text}`;
+  }, []);
+
   useEffect(() => {
     if (!activeAlert) {
       hasPlayedSound.current = false;
@@ -221,6 +230,15 @@ export default function VehicleNearbyPopup() {
   const v = vehicleNearbyAlert?.vehicle || {};
   const distance = vehicleNearbyAlert?.distance ?? v.distance ?? 0;
   const zoneLabel = vehicleNearbyAlert?.zoneLabel || null;
+  const topAssessment = riskData?.assessments?.[0];
+  const ttcSeconds = topAssessment?.components?.ttc ?? null;
+  const showDangerWarning = Boolean(
+    (distance <= 12 && (riskData?.riskLevel === 'high' || (riskData?.finalRisk || 0) >= 60))
+    || (ttcSeconds != null && ttcSeconds <= 20)
+  );
+  const notifyMessage = showDangerWarning
+    ? 'Danger - Possible accident ahead. Please send immediate emergency assistance.'
+    : 'Nearby vehicle collision risk detected. Please provide emergency assistance.';
 
   return (
     <div className="vehicle-nearby-popup-overlay" onClick={dismiss} role="dialog" aria-modal="true" aria-labelledby="vehicle-nearby-title">
@@ -240,6 +258,17 @@ export default function VehicleNearbyPopup() {
         <p className="vehicle-nearby-popup-message">
           Another vehicle is within <strong>{formatDistance(distance)}</strong> of your vehicle.
         </p>
+
+        {showDangerWarning && (
+          <div className="vehicle-nearby-popup-danger-warning">
+            <div className="vehicle-nearby-popup-danger-warning-title">
+              🚨 Danger - Possible Accident Ahead
+            </div>
+            <div className="vehicle-nearby-popup-danger-warning-text">
+              Please slow down or change direction immediately.
+            </div>
+          </div>
+        )}
 
         <div className="vehicle-nearby-popup-details">
           {v.ownerName && (
@@ -283,6 +312,41 @@ export default function VehicleNearbyPopup() {
           <div className="vehicle-nearby-popup-ai-message">{aiSuggestion.approachMessage}</div>
           <div className="vehicle-nearby-popup-ai-action">
             Recommended action: <strong>{aiSuggestion.recommendedAction}</strong>
+          </div>
+        </div>
+
+        <div className="vehicle-nearby-popup-emergency-list">
+          <div className="vehicle-nearby-popup-emergency-row ambulance">
+            <div className="vehicle-nearby-popup-emergency-service">
+              <span className="vehicle-nearby-popup-emergency-emoji">🚑</span>
+              <span>Ambulance</span>
+            </div>
+            <div className="vehicle-nearby-popup-emergency-actions">
+              <button type="button" className="vehicle-nearby-popup-emergency-action-btn" onClick={() => handleEmergencyDial('108')}>Call</button>
+              <button type="button" className="vehicle-nearby-popup-emergency-action-btn notify" onClick={() => handleEmergencyNotify('108', notifyMessage)}>Notify</button>
+            </div>
+          </div>
+
+          <div className="vehicle-nearby-popup-emergency-row hospital">
+            <div className="vehicle-nearby-popup-emergency-service">
+              <span className="vehicle-nearby-popup-emergency-emoji">🏥</span>
+              <span>Hospital</span>
+            </div>
+            <div className="vehicle-nearby-popup-emergency-actions">
+              <button type="button" className="vehicle-nearby-popup-emergency-action-btn" onClick={() => handleEmergencyDial('112')}>Call</button>
+              <button type="button" className="vehicle-nearby-popup-emergency-action-btn notify" onClick={() => handleEmergencyNotify('112', notifyMessage)}>Notify</button>
+            </div>
+          </div>
+
+          <div className="vehicle-nearby-popup-emergency-row police">
+            <div className="vehicle-nearby-popup-emergency-service">
+              <span className="vehicle-nearby-popup-emergency-emoji">🚓</span>
+              <span>Police</span>
+            </div>
+            <div className="vehicle-nearby-popup-emergency-actions">
+              <button type="button" className="vehicle-nearby-popup-emergency-action-btn" onClick={() => handleEmergencyDial('100')}>Call</button>
+              <button type="button" className="vehicle-nearby-popup-emergency-action-btn notify" onClick={() => handleEmergencyNotify('100', notifyMessage)}>Notify</button>
+            </div>
           </div>
         </div>
 

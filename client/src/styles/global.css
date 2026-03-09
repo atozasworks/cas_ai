@@ -470,6 +470,97 @@ input:focus, textarea:focus, select:focus {
   color: var(--accent-green);
 }
 
+.vehicle-nearby-popup-danger-warning {
+  margin: 0 16px 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.14);
+}
+
+.vehicle-nearby-popup-danger-warning-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fca5a5;
+  margin-bottom: 4px;
+}
+
+.vehicle-nearby-popup-danger-warning-text {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.vehicle-nearby-popup-emergency-list {
+  margin: 0 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vehicle-nearby-popup-emergency-row {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 12px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+
+.vehicle-nearby-popup-emergency-row.ambulance {
+  background: linear-gradient(180deg, #dc2626, #b91c1c);
+}
+
+.vehicle-nearby-popup-emergency-row.hospital {
+  background: linear-gradient(180deg, #059669, #047857);
+}
+
+.vehicle-nearby-popup-emergency-row.police {
+  background: linear-gradient(180deg, #2563eb, #1d4ed8);
+}
+
+.vehicle-nearby-popup-emergency-service {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.vehicle-nearby-popup-emergency-emoji {
+  font-size: 1rem;
+}
+
+.vehicle-nearby-popup-emergency-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vehicle-nearby-popup-emergency-action-btn {
+  min-width: 54px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.92);
+  color: #111827;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0 10px;
+}
+
+.vehicle-nearby-popup-emergency-action-btn.notify {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.vehicle-nearby-popup-emergency-action-btn:hover {
+  filter: brightness(0.96);
+}
+
 .vehicle-nearby-popup-dismiss {
   margin: 0 16px 16px;
   width: calc(100% - 32px);
