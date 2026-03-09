@@ -533,6 +533,16 @@ input:focus, textarea:focus, select:focus {
   font-size: 1rem;
 }
 
+.vehicle-nearby-popup-emergency-number {
+  background: rgba(255, 255, 255, 0.25);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
 .vehicle-nearby-popup-emergency-actions {
   display: flex;
   align-items: center;
