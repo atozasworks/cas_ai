@@ -44,6 +44,5 @@ const vehicleSchema = new mongoose.Schema({
 
 vehicleSchema.index({ lastKnownLocation: '2dsphere' });
 vehicleSchema.index({ owner: 1, isActive: 1 });
-vehicleSchema.index({ plateNumber: 1 });
 
 module.exports = mongoose.model('Vehicle', vehicleSchema);

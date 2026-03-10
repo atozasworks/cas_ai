@@ -8,7 +8,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 
 const config = require('./config');
-const { connectDB, disconnectDB } = require('./config/database');
+const { connectDB, disconnectDB, isDBConnected } = require('./config/database');
 const { connectRedis, disconnectRedis } = require('./config/redis');
 const { initializeSocket } = require('./sockets');
 const routes = require('./routes');
@@ -45,7 +45,16 @@ app.use(rateLimit({
 
 // ───────── API Routes ─────────
 
-app.use('/api/v1', routes);
+app.use('/api/v1', (req, res, next) => {
+  if (req.path === '/health') return next();
+  if (!isDBConnected()) {
+    return res.status(503).json({
+      success: false,
+      message: 'Service is starting. Please retry shortly.',
+    });
+  }
+  return next();
+}, routes);
 
 // ───────── Serve React Build ─────────
 
@@ -79,12 +88,31 @@ app.use(globalErrorHandler);
 
 // ───────── Startup ─────────
 
+const DB_RETRY_DELAY_MS = parseInt(process.env.DB_RETRY_DELAY_MS, 10) || 5000;
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function connectDBWithRetry() {
+  while (true) {
+    try {
+      await connectDB();
+      return;
+    } catch (err) {
+      logger.error(`MongoDB init retry in ${DB_RETRY_DELAY_MS}ms: ${err.message}`);
+      await delay(DB_RETRY_DELAY_MS);
+    }
+  }
+}
+
 async function start() {
   try {
-    await connectDB();
     await connectRedis();
-
     initializeSocket(server);
+
+    server.on('error', (err) => {
+      logger.error('HTTP server failed to start:', err);
+      process.exit(1);
+    });
 
     server.listen(config.server.port, () => {
       logger.info(`╔══════════════════════════════════════════╗`);
@@ -92,6 +120,8 @@ async function start() {
       logger.info(`║  Environment: ${config.server.env.padEnd(26)}║`);
       logger.info(`╚══════════════════════════════════════════╝`);
     });
+
+    await connectDBWithRetry();
   } catch (err) {
     logger.error('Server startup failed:', err);
     process.exit(1);
