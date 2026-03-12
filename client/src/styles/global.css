@@ -506,6 +506,7 @@ input:focus, textarea:focus, select:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding: 8px 10px;
 }
 
@@ -524,6 +525,10 @@ input:focus, textarea:focus, select:focus {
 .vehicle-nearby-popup-emergency-service {
   display: flex;
   align-items: center;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  row-gap: 4px;
   gap: 8px;
   font-size: 0.9rem;
   font-weight: 700;
@@ -535,36 +540,39 @@ input:focus, textarea:focus, select:focus {
 
 .vehicle-nearby-popup-emergency-number {
   background: rgba(255, 255, 255, 0.25);
-  padding: 2px 8px;
+  padding: 2px 7px;
   border-radius: 6px;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
   border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
 .vehicle-nearby-popup-emergency-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  flex-shrink: 0;
+  gap: 4px;
 }
 
 .vehicle-nearby-popup-emergency-action-btn {
-  min-width: 54px;
+  min-width: 50px;
   height: 32px;
   border-radius: 8px;
   border: none;
   background: rgba(255, 255, 255, 0.92);
   color: #111827;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 700;
-  padding: 0 10px;
+  padding: 0 8px;
+  white-space: nowrap;
 }
 
 .vehicle-nearby-popup-emergency-action-btn.notify {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.32);
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.55);
 }
 
 .vehicle-nearby-popup-emergency-action-btn:hover {
@@ -596,5 +604,31 @@ input:focus, textarea:focus, select:focus {
   }
   .vehicle-nearby-popup-card {
     max-width: none;
+  }
+  .vehicle-nearby-popup-emergency-row {
+    padding: 8px;
+    gap: 6px;
+  }
+  .vehicle-nearby-popup-emergency-service {
+    flex-wrap: nowrap;
+    gap: 6px;
+    font-size: 0.85rem;
+  }
+  .vehicle-nearby-popup-emergency-service span {
+    white-space: nowrap;
+  }
+  .vehicle-nearby-popup-emergency-number {
+    font-size: 0.74rem;
+    padding: 2px 6px;
+    letter-spacing: 0.3px;
+  }
+  .vehicle-nearby-popup-emergency-actions {
+    gap: 4px;
+  }
+  .vehicle-nearby-popup-emergency-action-btn {
+    min-width: 46px;
+    height: 30px;
+    font-size: 0.72rem;
+    padding: 0 6px;
   }
 }

@@ -77,7 +77,7 @@ export default function VehicleSelector() {
             <option value="bus">Bus</option>
             <option value="bicycle">Bicycle</option>
           </select>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="vehicle-make-model-row" style={{ display: 'flex', gap: 8 }}>
             <input placeholder="Make" value={newVehicle.make}
               onChange={(e) => setNewVehicle({ ...newVehicle, make: e.target.value })}
               style={{ ...styles.input, flex: 1 }} />

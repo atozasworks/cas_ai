@@ -82,7 +82,7 @@ export default function AuthPage() {
               <FiPhone style={styles.inputIcon} />
               <input
                 type="tel"
-                placeholder="Phone (optional)"
+                placeholder="Phone"
                 value={form.phone}
                 onChange={update('phone')}
                 style={styles.input}

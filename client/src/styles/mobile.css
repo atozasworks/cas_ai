@@ -306,6 +306,16 @@
     min-height: 52px;
   }
 
+  .vehicle-make-model-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .vehicle-make-model-row input {
+    width: 100%;
+    min-width: 0;
+  }
+
   /* --- Emergency overlay: full-screen mobile enhancements --- */
   .emergency-overlay-mobile .emergency-content {
     padding: 24px 20px;
