@@ -5,6 +5,8 @@ const { protect } = require('../middleware/auth');
 const { validate, schemas } = require('../middleware/validate');
 
 router.post('/register', validate(schemas.register), authController.register);
+router.post('/request-otp', validate(schemas.requestOtp), authController.requestOtp);
+router.post('/register-otp', validate(schemas.registerOtp), authController.registerWithOtp);
 router.post('/login', validate(schemas.login), authController.login);
 router.get('/me', protect, authController.getMe);
 router.patch('/preferences', protect, authController.updatePreferences);

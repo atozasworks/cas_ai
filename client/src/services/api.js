@@ -25,7 +25,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    if (error.response?.status === 401) {
+    const requestUrl = error.config?.url || '';
+    const isAuthAttempt = requestUrl.includes('/auth/login')
+      || requestUrl.includes('/auth/request-otp')
+      || requestUrl.includes('/auth/register')
+      || requestUrl.includes('/auth/register-otp');
+
+    if (error.response?.status === 401 && !isAuthAttempt) {
       localStorage.removeItem('cas_token');
       localStorage.removeItem('cas_user');
       window.location.href = '/login';
@@ -36,6 +42,8 @@ api.interceptors.response.use(
 
 export const authAPI = {
   register: (data) => api.post('/auth/register', data),
+  requestOtp: (data) => api.post('/auth/request-otp', data),
+  registerWithOtp: (data) => api.post('/auth/register-otp', data),
   login: (data) => api.post('/auth/login', data),
   getMe: () => api.get('/auth/me'),
   updatePreferences: (data) => api.patch('/auth/preferences', data),

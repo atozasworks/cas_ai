@@ -20,13 +20,25 @@ const schemas = {
   register: Joi.object({
     name: Joi.string().min(2).max(100).required(),
     email: Joi.string().email().required(),
-    password: Joi.string().min(6).max(128).required(),
-    phone: Joi.string().pattern(/^\+?[\d\s-]{7,15}$/).optional(),
+    password: Joi.string().min(6).max(128).optional(),
+    phone: Joi.string().pattern(/^\+?[\d\s-]{7,15}$/).required(),
   }),
 
   login: Joi.object({
     email: Joi.string().email().required(),
-    password: Joi.string().required(),
+    otp: Joi.string().pattern(/^\d{6}$/).required(),
+  }),
+
+  requestOtp: Joi.object({
+    email: Joi.string().email().required(),
+    purpose: Joi.string().valid('login', 'signup').default('login'),
+  }),
+
+  registerOtp: Joi.object({
+    name: Joi.string().min(2).max(100).required(),
+    email: Joi.string().email().required(),
+    phone: Joi.string().pattern(/^\+?[\d\s-]{7,15}$/).required(),
+    otp: Joi.string().pattern(/^\d{6}$/).required(),
   }),
 
   vehicleCreate: Joi.object({

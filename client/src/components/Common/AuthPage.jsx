@@ -5,29 +5,74 @@ import toast from 'react-hot-toast';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
-  const [form, setForm] = useState({ name: '', email: '', password: '', phone: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', otp: '' });
+  const [otpSent, setOtpSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const { login, register } = useAuth();
+  const { login, requestOtp, register } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
       if (isLogin) {
-        await login(form.email, form.password);
-        toast.success('Welcome back!');
+        if (!otpSent) {
+          const otpData = await requestOtp(form.email, 'login');
+          setOtpSent(true);
+          if (otpData?.debugOtp) {
+            toast.success(`OTP sent. Demo OTP: ${otpData.debugOtp}`);
+          } else {
+            toast.success('OTP sent to your email');
+          }
+        } else {
+          await login(form.email, form.otp);
+          toast.success('Welcome back!');
+        }
       } else {
-        await register(form.name, form.email, form.password, form.phone);
-        toast.success('Account created!');
+        if (!form.email) {
+          toast.error('Please enter your email address');
+          return;
+        }
+        if (!form.name || !form.phone) {
+          toast.error('Please complete full name and phone number');
+          return;
+        }
+        if (!otpSent) {
+          const otpData = await requestOtp(form.email, 'signup');
+          setOtpSent(true);
+          if (otpData?.debugOtp) {
+            toast.success(`OTP sent. Demo OTP: ${otpData.debugOtp}`);
+          } else {
+            toast.success('OTP sent to your email');
+          }
+        } else {
+          await register(form.name, form.email, form.phone, form.otp);
+          toast.success('Account created!');
+          setIsLogin(true);
+          setOtpSent(false);
+          setForm({ name: '', email: '', phone: '', otp: '' });
+        }
       }
     } catch (err) {
-      toast.error(err?.message || 'Authentication failed');
+      const message = err?.message || 'Authentication failed';
+      if (/invalid|expired otp/i.test(message)) {
+        toast.error('OTP verification failed. Please try again.');
+      } else {
+        toast.error(message);
+      }
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
-  const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
-
+  const update = (field) => (e) => {
+    const value = e.target.value;
+    setForm((prev) => ({
+      ...prev,
+      [field]: value,
+      ...(field === 'email' && otpSent ? { otp: '' } : {}),
+    }));
+    if (field === 'email' && otpSent) setOtpSent(false);
+  };
   return (
     <div style={styles.container}>
       <div style={styles.card}>
@@ -64,18 +109,21 @@ export default function AuthPage() {
             />
           </div>
 
-          <div style={styles.inputGroup}>
-            <FiLock style={styles.inputIcon} />
-            <input
-              type="password"
-              placeholder="Password"
-              value={form.password}
-              onChange={update('password')}
-              required
-              minLength={6}
-              style={styles.input}
-            />
-          </div>
+          {otpSent && (
+            <div style={styles.inputGroup}>
+              <FiLock style={styles.inputIcon} />
+              <input
+                type="text"
+                placeholder="Enter OTP"
+                value={form.otp}
+                onChange={update('otp')}
+                required={otpSent}
+                inputMode="numeric"
+                maxLength={6}
+                style={styles.input}
+              />
+            </div>
+          )}
 
           {!isLogin && (
             <div style={styles.inputGroup}>
@@ -85,6 +133,7 @@ export default function AuthPage() {
                 placeholder="Phone"
                 value={form.phone}
                 onChange={update('phone')}
+                required={!isLogin}
                 style={styles.input}
               />
             </div>
@@ -97,7 +146,15 @@ export default function AuthPage() {
 
         <p style={styles.toggle}>
           {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
-          <button onClick={() => setIsLogin(!isLogin)} style={styles.toggleBtn}>
+          <button
+            type="button"
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setOtpSent(false);
+              setForm((prev) => ({ ...prev, otp: '' }));
+            }}
+            style={styles.toggleBtn}
+          >
             {isLogin ? 'Sign Up' : 'Sign In'}
           </button>
         </p>

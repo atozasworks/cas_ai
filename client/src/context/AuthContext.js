@@ -29,8 +29,10 @@ export function AuthProvider({ children }) {
     loadUser();
   }, [loadUser]);
 
-  const login = async (email, password) => {
-    const data = await authAPI.login({ email, password });
+  const requestOtp = async (email, purpose = 'login') => authAPI.requestOtp({ email, purpose });
+
+  const login = async (email, otp) => {
+    const data = await authAPI.login({ email, otp });
     localStorage.setItem('cas_token', data.token);
     localStorage.setItem('cas_user', JSON.stringify(data.user));
     setToken(data.token);
@@ -38,8 +40,8 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  const register = async (name, email, password, phone) => {
-    const data = await authAPI.register({ name, email, password, phone });
+  const register = async (name, email, phone, otp) => {
+    const data = await authAPI.registerWithOtp({ name, email, phone, otp });
     localStorage.setItem('cas_token', data.token);
     localStorage.setItem('cas_user', JSON.stringify(data.user));
     setToken(data.token);
@@ -64,7 +66,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      user, token, loading, login, register, logout, updatePreferences,
+      user, token, loading, login, requestOtp, register, logout, updatePreferences,
       isAuthenticated: !!user,
     }}>
       {children}
