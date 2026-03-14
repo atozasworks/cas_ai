@@ -10,6 +10,7 @@ const SIGNUP_STEPS = { DETAILS: 'details', OTP: 'otp' };
 
 /* ── Load Google Identity Services script once ── */
 let gsiLoadPromise = null;
+let gsiInitializedClientId = '';
 function loadGsiScript() {
   if (gsiLoadPromise) return gsiLoadPromise;
   gsiLoadPromise = new Promise((resolve, reject) => {
@@ -35,7 +36,6 @@ export default function AuthPage() {
   const { login, requestOtp, verifySignupOtp, register, googleAuth } = useAuth();
   const googleBtnRef = useRef(null);
   const loginGoogleBtnRef = useRef(null);
-  const gsiInitialized = useRef(false);
 
   /* ── Google callback ── */
   const handleGoogleResponse = useCallback(async (response) => {
@@ -62,12 +62,12 @@ export default function AuthPage() {
     let cancelled = false;
     loadGsiScript().then(() => {
       if (cancelled) return;
-      if (!gsiInitialized.current) {
+      if (gsiInitializedClientId !== GOOGLE_CLIENT_ID) {
         window.google.accounts.id.initialize({
           client_id: GOOGLE_CLIENT_ID,
           callback: handleGoogleResponse,
         });
-        gsiInitialized.current = true;
+        gsiInitializedClientId = GOOGLE_CLIENT_ID;
       }
       // Render on signup details
       if (showOnSignup && googleBtnRef.current) {

@@ -32,7 +32,7 @@ let io = null;
 function initializeSocket(httpServer) {
   io = new Server(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL || 'http://localhost:3000',
+      origin: config.cors.allowedOrigins,
       methods: ['GET', 'POST'],
       credentials: true,
     },

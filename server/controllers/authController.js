@@ -5,8 +5,24 @@ const User = require('../models/User');
 const DriverScore = require('../models/DriverScore');
 const config = require('../config');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
+const logger = require('../middleware/logger');
 
-const googleClient = new OAuth2Client(config.google.clientId);
+const googleClient = new OAuth2Client();
+const getGoogleAudiences = () =>
+  (config.google.clientIds && config.google.clientIds.length
+    ? config.google.clientIds
+    : [config.google.clientId]).filter(Boolean);
+
+const decodeJwtPayload = (token) => {
+  try {
+    const parts = String(token || '').split('.');
+    if (parts.length < 2) return null;
+    const payload = Buffer.from(parts[1], 'base64').toString('utf8');
+    return JSON.parse(payload);
+  } catch (_) {
+    return null;
+  }
+};
 
 const signToken = (id) =>
   jwt.sign({ id }, config.jwt.secret, { expiresIn: config.jwt.expiresIn });
@@ -231,10 +247,12 @@ exports.verifySignupOtp = asyncHandler(async (req, res, next) => {
 
 exports.googleAuth = asyncHandler(async (req, res, next) => {
   const { credential } = req.body;
+  const allowedAudiences = getGoogleAudiences();
+
   if (!credential) {
     return next(new AppError('Google credential is required', 400));
   }
-  if (!config.google.clientId) {
+  if (allowedAudiences.length === 0) {
     return next(new AppError('Google Sign-In is not configured on the server', 500));
   }
 
@@ -242,11 +260,26 @@ exports.googleAuth = asyncHandler(async (req, res, next) => {
   try {
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
-      audience: config.google.clientId,
+      audience: allowedAudiences,
     });
     payload = ticket.getPayload();
   } catch (err) {
-    return next(new AppError('Invalid Google credential', 401));
+    const decodedPayload = decodeJwtPayload(credential);
+    logger.warn('Google credential verification failed', {
+      reason: err.message,
+      tokenAud: decodedPayload?.aud,
+      tokenIss: decodedPayload?.iss,
+      allowedAudiences,
+    });
+
+    const detailedMessage = config.server.env === 'development'
+      ? `Invalid Google credential: ${err.message}`
+      : 'Invalid Google credential';
+    return next(new AppError(detailedMessage, 401));
+  }
+
+  if (!payload?.email || payload.email_verified === false) {
+    return next(new AppError('Google account email is not verified', 401));
   }
 
   const email = payload.email.toLowerCase();

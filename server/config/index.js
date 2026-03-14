@@ -3,6 +3,26 @@ const path = require('path');
 
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
+const parseCsv = (value) =>
+  String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const parseOrigins = parseCsv;
+const localDevOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+const configuredOrigins = parseOrigins(process.env.CORS_ORIGINS || process.env.CLIENT_URL);
+const allowedOrigins = Array.from(
+  new Set(
+    process.env.NODE_ENV === 'development'
+      ? [...configuredOrigins, ...localDevOrigins]
+      : configuredOrigins
+  )
+);
+const googleClientIds = Array.from(
+  new Set(parseCsv(process.env.GOOGLE_CLIENT_IDS || process.env.GOOGLE_CLIENT_ID))
+);
+
 const config = {
   server: {
     port: parseInt(process.env.PORT, 10) || 5000,
@@ -62,6 +82,11 @@ const config = {
 
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
+    clientIds: googleClientIds,
+  },
+
+  cors: {
+    allowedOrigins,
   },
 
   rateLimit: {
