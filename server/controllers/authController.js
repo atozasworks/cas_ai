@@ -1,9 +1,12 @@
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const DriverScore = require('../models/DriverScore');
 const config = require('../config');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
+
+const googleClient = new OAuth2Client(config.google.clientId);
 
 const signToken = (id) =>
   jwt.sign({ id }, config.jwt.secret, { expiresIn: config.jwt.expiresIn });
@@ -199,6 +202,72 @@ exports.registerWithOtp = asyncHandler(async (req, res, next) => {
 
   const generatedPassword = crypto.randomBytes(24).toString('hex');
   const user = await User.create({ name, email, password: generatedPassword, phone });
+  await DriverScore.create({ userId: user._id });
+
+  sendTokenResponse(user, 201, res);
+});
+
+exports.verifySignupOtp = asyncHandler(async (req, res, next) => {
+  const email = normalizeEmail(req.body.email);
+  const { otp } = req.body;
+
+  clearExpiredSignupOtps();
+  const pending = pendingSignupOtps.get(email);
+  const isValidOtp = Boolean(
+    pending
+      && pending.otpHash
+      && pending.expiresAt > Date.now()
+      && pending.otpHash === hashOtp(otp)
+  );
+  if (!isValidOtp) {
+    return next(new AppError('Invalid or expired OTP', 401));
+  }
+
+  // Mark as verified but don't consume — registerWithOtp will consume it
+  pending.verified = true;
+
+  res.json({ success: true, verified: true });
+});
+
+exports.googleAuth = asyncHandler(async (req, res, next) => {
+  const { credential } = req.body;
+  if (!credential) {
+    return next(new AppError('Google credential is required', 400));
+  }
+  if (!config.google.clientId) {
+    return next(new AppError('Google Sign-In is not configured on the server', 500));
+  }
+
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: config.google.clientId,
+    });
+    payload = ticket.getPayload();
+  } catch (err) {
+    return next(new AppError('Invalid Google credential', 401));
+  }
+
+  const email = payload.email.toLowerCase();
+  const googleName = payload.name || '';
+
+  let user = await User.findOne({ email });
+  if (user) {
+    // Existing user — log them in
+    user.lastLogin = new Date();
+    await user.save({ validateBeforeSave: false });
+    return sendTokenResponse(user, 200, res);
+  }
+
+  // New user — create account
+  const generatedPassword = crypto.randomBytes(24).toString('hex');
+  user = await User.create({
+    name: googleName,
+    email,
+    password: generatedPassword,
+    phone: '',
+  });
   await DriverScore.create({ userId: user._id });
 
   sendTokenResponse(user, 201, res);

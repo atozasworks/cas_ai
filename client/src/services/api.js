@@ -44,7 +44,9 @@ export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   requestOtp: (data) => api.post('/auth/request-otp', data),
   registerWithOtp: (data) => api.post('/auth/register-otp', data),
+  verifySignupOtp: (data) => api.post('/auth/verify-signup-otp', data),
   login: (data) => api.post('/auth/login', data),
+  googleAuth: (data) => api.post('/auth/google', data),
   getMe: () => api.get('/auth/me'),
   updatePreferences: (data) => api.patch('/auth/preferences', data),
 };

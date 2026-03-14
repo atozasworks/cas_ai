@@ -60,6 +60,10 @@ const config = {
     pingTimeout: parseInt(process.env.SOCKET_PING_TIMEOUT, 10) || 5000,
   },
 
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
+  },
+
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 60000,
     maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 100,

@@ -41,6 +41,15 @@ const schemas = {
     otp: Joi.string().pattern(/^\d{6}$/).required(),
   }),
 
+  verifySignupOtp: Joi.object({
+    email: Joi.string().email().required(),
+    otp: Joi.string().pattern(/^\d{6}$/).required(),
+  }),
+
+  googleAuth: Joi.object({
+    credential: Joi.string().required(),
+  }),
+
   vehicleCreate: Joi.object({
     plateNumber: Joi.string().min(2).max(20).required(),
     type: Joi.string().valid('car', 'truck', 'motorcycle', 'bus', 'emergency', 'bicycle').required(),
