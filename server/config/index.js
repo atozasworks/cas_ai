@@ -10,7 +10,7 @@ const parseCsv = (value) =>
     .filter(Boolean);
 
 const parseOrigins = parseCsv;
-const localDevOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+const localDevOrigins = ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:7760'];
 const configuredOrigins = parseOrigins(process.env.CORS_ORIGINS || process.env.CLIENT_URL);
 const allowedOrigins = Array.from(
   new Set(
@@ -52,7 +52,7 @@ const config = {
     port: parseInt(process.env.REDIS_PORT, 10) || 6379,
     password: process.env.REDIS_PASSWORD || undefined,
     retryDelayMs: 3000,
-    maxRetries: 10,
+    maxRetries: 3,
   },
 
   jwt: {
