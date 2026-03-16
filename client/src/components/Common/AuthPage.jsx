@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { FiShield, FiMail, FiLock, FiUser, FiPhone, FiCheckCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-
-const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
+import { getRuntimeConfig, loadRuntimeConfig } from '../../services/runtimeConfig';
 
 // Sign-up steps: 'details' (google + name, email, phone) -> 'otp' -> done
 const SIGNUP_STEPS = { DETAILS: 'details', OTP: 'otp' };
@@ -31,6 +30,7 @@ export default function AuthPage() {
   const [form, setForm] = useState({ name: '', email: '', phone: '', otp: '' });
   const [otpSent, setOtpSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [googleClientId, setGoogleClientId] = useState(() => getRuntimeConfig().googleClientId || '');
   const [signupStep, setSignupStep] = useState(SIGNUP_STEPS.DETAILS);
   const [otpVerified, setOtpVerified] = useState(false);
   const { login, requestOtp, verifySignupOtp, register, googleAuth } = useAuth();
@@ -51,9 +51,17 @@ export default function AuthPage() {
     }
   }, [googleAuth]);
 
+  useEffect(() => {
+    let active = true;
+    loadRuntimeConfig().then((cfg) => {
+      if (active) setGoogleClientId(cfg.googleClientId || '');
+    });
+    return () => { active = false; };
+  }, []);
+
   /* ── Initialize GIS and render Google button ── */
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return;
+    if (!googleClientId) return;
     // Show on login page OR signup details step
     const showOnLogin = isLogin;
     const showOnSignup = !isLogin && signupStep === SIGNUP_STEPS.DETAILS;
@@ -62,12 +70,13 @@ export default function AuthPage() {
     let cancelled = false;
     loadGsiScript().then(() => {
       if (cancelled) return;
-      if (gsiInitializedClientId !== GOOGLE_CLIENT_ID) {
+      if (gsiInitializedClientId !== googleClientId) {
         window.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
+          client_id: googleClientId,
           callback: handleGoogleResponse,
+          ux_mode: 'popup',
         });
-        gsiInitializedClientId = GOOGLE_CLIENT_ID;
+        gsiInitializedClientId = googleClientId;
       }
       // Render on signup details
       if (showOnSignup && googleBtnRef.current) {
@@ -96,7 +105,7 @@ export default function AuthPage() {
     });
 
     return () => { cancelled = true; };
-  }, [isLogin, signupStep, handleGoogleResponse]);
+  }, [isLogin, signupStep, googleClientId, handleGoogleResponse]);
 
   /* ───── LOGIN HANDLER ───── */
   const handleLogin = async (e) => {
@@ -218,7 +227,7 @@ export default function AuthPage() {
         <span style={styles.dividerLine} />
       </div>
 
-      {GOOGLE_CLIENT_ID ? (
+      {googleClientId ? (
         <div ref={loginGoogleBtnRef} style={styles.googleBtnContainer} />
       ) : (
         <button type="button" disabled style={{ ...styles.googleBtn, opacity: 0.5, cursor: 'not-allowed' }}>
@@ -237,7 +246,7 @@ export default function AuthPage() {
   /* ───── RENDER: SIGNUP DETAILS (Google + Name, Email, Phone — all visible) ───── */
   const renderSignupDetails = () => (
     <div style={styles.form}>
-      {GOOGLE_CLIENT_ID ? (
+      {googleClientId ? (
         <div ref={googleBtnRef} style={styles.googleBtnContainer} />
       ) : (
         <button type="button" disabled style={{ ...styles.googleBtn, opacity: 0.5, cursor: 'not-allowed' }}>

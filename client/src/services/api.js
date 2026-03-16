@@ -1,12 +1,20 @@
 import axios from 'axios';
+import { getRuntimeConfig } from './runtimeConfig';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:7760/api/v1';
-//http://localhost:7760
+const initialRuntimeConfig = getRuntimeConfig();
+
 const api = axios.create({
-  baseURL: API_BASE,
+  baseURL: initialRuntimeConfig.apiUrl || '/api/v1',
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 });
+
+export const setApiBaseUrl = (baseUrl) => {
+  const normalized = String(baseUrl || '').trim().replace(/\/+$/, '');
+  if (normalized) {
+    api.defaults.baseURL = normalized;
+  }
+};
 
 
 
@@ -29,7 +37,9 @@ api.interceptors.response.use(
     const isAuthAttempt = requestUrl.includes('/auth/login')
       || requestUrl.includes('/auth/request-otp')
       || requestUrl.includes('/auth/register')
-      || requestUrl.includes('/auth/register-otp');
+      || requestUrl.includes('/auth/register-otp')
+      || requestUrl.includes('/auth/verify-signup-otp')
+      || requestUrl.includes('/auth/google');
 
     if (error.response?.status === 401 && !isAuthAttempt) {
       localStorage.removeItem('cas_token');

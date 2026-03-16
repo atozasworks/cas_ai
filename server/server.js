@@ -22,7 +22,11 @@ app.set('trust proxy', 1);
 
 // ───────── Global Middleware ─────────
 
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+  contentSecurityPolicy: false,
+  // Required for Google Sign-In popup mode in modern browsers.
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+}));
 app.use(compression());
 const isOriginAllowed = (origin) => !origin || config.cors.allowedOrigins.includes(origin);
 app.use(cors({
@@ -52,7 +56,7 @@ app.use(rateLimit({
 // ───────── API Routes ─────────
 
 app.use('/api/v1', (req, res, next) => {
-  if (req.path === '/health') return next();
+  if (req.path === '/health' || req.path === '/app-config') return next();
   if (!isDBConnected()) {
     return res.status(503).json({
       success: false,

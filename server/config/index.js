@@ -22,6 +22,12 @@ const allowedOrigins = Array.from(
 const googleClientIds = Array.from(
   new Set(parseCsv(process.env.GOOGLE_CLIENT_IDS || process.env.GOOGLE_CLIENT_ID))
 );
+const publicApiUrl = process.env.PUBLIC_API_URL || process.env.REACT_APP_API_URL || '/api/v1';
+const publicGoogleClientId =
+  process.env.PUBLIC_GOOGLE_CLIENT_ID
+  || process.env.REACT_APP_GOOGLE_CLIENT_ID
+  || process.env.GOOGLE_CLIENT_ID
+  || '';
 
 const config = {
   server: {
@@ -83,6 +89,11 @@ const config = {
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
     clientIds: googleClientIds,
+  },
+
+  publicClient: {
+    apiUrl: String(publicApiUrl || '/api/v1').trim(),
+    googleClientId: String(publicGoogleClientId || '').trim(),
   },
 
   cors: {
