@@ -78,9 +78,16 @@ export function AuthProvider({ children }) {
     setUser((prev) => ({ ...prev, preferences: data.preferences }));
   };
 
+  const updateProfile = async (profile) => {
+    const data = await authAPI.updateProfile(profile);
+    setUser(data.user);
+    localStorage.setItem('cas_user', JSON.stringify(data.user));
+    return data.user;
+  };
+
   return (
     <AuthContext.Provider value={{
-      user, token, loading, login, requestOtp, verifySignupOtp, register, googleAuth, logout, updatePreferences,
+      user, token, loading, login, requestOtp, verifySignupOtp, register, googleAuth, logout, updatePreferences, updateProfile,
       isAuthenticated: !!user,
     }}>
       {children}

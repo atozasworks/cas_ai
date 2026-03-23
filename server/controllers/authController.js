@@ -311,6 +311,27 @@ exports.getMe = asyncHandler(async (req, res) => {
   res.json({ success: true, user: user.toSafeObject() });
 });
 
+exports.updateProfile = asyncHandler(async (req, res, next) => {
+  const name = String(req.body.name || '').trim();
+  const email = normalizeEmail(req.body.email);
+
+  const existingUser = await User.findOne({ email, _id: { $ne: req.user._id } });
+  if (existingUser) {
+    return next(new AppError('Email already registered', 409));
+  }
+
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    return next(new AppError('User not found', 404));
+  }
+
+  user.name = name;
+  user.email = email;
+  await user.save();
+
+  res.json({ success: true, user: user.toSafeObject() });
+});
+
 exports.updatePreferences = asyncHandler(async (req, res) => {
   const user = await User.findByIdAndUpdate(
     req.user._id,

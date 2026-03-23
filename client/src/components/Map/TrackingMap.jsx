@@ -163,6 +163,12 @@ export default function TrackingMap({ userName, activeVehicle, vehicles = [], al
                         <span style={{ fontWeight: 500 }}>{activeVehicle?.model || vehicles[0]?.model}</span>
                       </div>
                     )}
+                    {(activeVehicle?.phone || vehicles[0]?.phone) && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#64748b' }}>Phone:</span>
+                        <span style={{ fontWeight: 500 }}>{activeVehicle?.phone || vehicles[0]?.phone}</span>
+                      </div>
+                    )}
                     {userName && (
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span style={{ color: '#64748b' }}>Driver:</span>
@@ -328,6 +334,12 @@ export default function TrackingMap({ userName, activeVehicle, vehicles = [], al
                           <span style={{ fontWeight: 500 }}>{v.model}</span>
                         </div>
                       )}
+                      {v.phone && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#64748b' }}>Phone:</span>
+                          <span style={{ fontWeight: 500 }}>{v.phone}</span>
+                        </div>
+                      )}
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span style={{ color: '#64748b' }}>Speed:</span>
                         <span style={{ fontWeight: 500 }}>{formatSpeed(v.lastSpeed || 0)}</span>
@@ -398,6 +410,12 @@ export default function TrackingMap({ userName, activeVehicle, vehicles = [], al
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <span style={{ color: '#64748b' }}>Model:</span>
                           <span style={{ fontWeight: 500 }}>{v.model}</span>
+                        </div>
+                      )}
+                      {v.phone && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#64748b' }}>Phone:</span>
+                          <span style={{ fontWeight: 500 }}>{v.phone}</span>
                         </div>
                       )}
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>

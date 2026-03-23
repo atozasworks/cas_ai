@@ -50,11 +50,17 @@ const schemas = {
     credential: Joi.string().required(),
   }),
 
+  profileUpdate: Joi.object({
+    name: Joi.string().min(2).max(100).required(),
+    email: Joi.string().email().required(),
+  }),
+
   vehicleCreate: Joi.object({
     plateNumber: Joi.string().min(2).max(20).required(),
     type: Joi.string().valid('car', 'truck', 'motorcycle', 'bus', 'emergency', 'bicycle').required(),
     make: Joi.string().max(50).optional(),
     model: Joi.string().max(50).optional(),
+    phone: Joi.string().pattern(/^\+?[\d\s-]{7,15}$/).required(),
     year: Joi.number().integer().min(1900).max(2030).optional(),
     color: Joi.string().max(30).optional(),
   }),

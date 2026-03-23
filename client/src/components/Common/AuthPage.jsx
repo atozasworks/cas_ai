@@ -330,15 +330,6 @@ export default function AuthPage() {
         </div>
 
         {isLogin ? renderLogin() : renderSignup()}
-
-        <p style={styles.toggle}>
-          {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
-          <button type="button"
-            onClick={() => { if (isLogin) { setIsLogin(false); resetSignup(); } else { resetToLogin(); } }}
-            style={styles.toggleBtn}>
-            {isLogin ? 'Sign Up' : 'Sign In'}
-          </button>
-        </p>
       </div>
     </div>
   );

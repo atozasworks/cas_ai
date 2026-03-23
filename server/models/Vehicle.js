@@ -21,6 +21,7 @@ const vehicleSchema = new mongoose.Schema({
   },
   make: { type: String, trim: true },
   model: { type: String, trim: true },
+  phone: { type: String, trim: true, required: [true, 'Phone number is required'] },
   year: { type: Number },
   color: { type: String, trim: true },
   dimensions: {
