@@ -113,9 +113,9 @@ export default function AuthPage() {
     setSubmitting(true);
     try {
       if (!otpSent) {
-        await requestOtp(form.email, 'login');
+        const data = await requestOtp(form.email, 'login');
         setOtpSent(true);
-        toast.success('OTP sent to your email');
+        toast.success(data?.message || 'OTP sent to your email');
       } else {
         await login(form.email, form.otp);
         toast.success('Welcome back!');
@@ -135,9 +135,9 @@ export default function AuthPage() {
     if (!form.phone.trim()) { toast.error('Please enter your phone number'); return; }
     setSubmitting(true);
     try {
-      await requestOtp(form.email, 'signup');
+      const data = await requestOtp(form.email, 'signup');
       setSignupStep(SIGNUP_STEPS.OTP);
-      toast.success('OTP sent to your email');
+      toast.success(data?.message || 'OTP sent to your email');
     } catch (err) {
       handleError(err);
     } finally {
@@ -148,7 +148,7 @@ export default function AuthPage() {
   /* ───── SIGNUP: Verify OTP & Create Account ───── */
   const handleVerifyAndCreate = async (e) => {
     e.preventDefault();
-    if (!form.otp || form.otp.length !== 6) { toast.error('Please enter the 6-digit OTP'); return; }
+    if (!form.otp || form.otp.length !== 4) { toast.error('Please enter the 4-digit OTP'); return; }
     setSubmitting(true);
     try {
       await register(form.name, form.email, form.phone, form.otp);
@@ -213,7 +213,7 @@ export default function AuthPage() {
           <div style={styles.inputGroup}>
             <FiLock style={styles.inputIcon} />
             <input type="text" placeholder="Enter OTP" value={form.otp}
-              onChange={update('otp')} required inputMode="numeric" maxLength={6} style={styles.input} />
+              onChange={update('otp')} required inputMode="numeric" maxLength={4} style={styles.input} />
           </div>
         )}
         <button type="submit" className="btn btn-primary" style={styles.submitBtn} disabled={submitting}>
@@ -296,11 +296,11 @@ export default function AuthPage() {
         <FiUser style={{ color: '#3b82f6', fontSize: 16, marginRight: 6 }} />
         <span>{form.name}</span>
       </div>
-      <p style={styles.infoText}>A 6-digit OTP has been sent to <strong>{form.email}</strong></p>
+      <p style={styles.infoText}>A 4-digit OTP has been sent to <strong>{form.email}</strong></p>
       <div style={styles.inputGroup}>
         <FiLock style={styles.inputIcon} />
-        <input type="text" placeholder="Enter 6-digit OTP" value={form.otp}
-          onChange={update('otp')} required inputMode="numeric" maxLength={6} style={styles.input} />
+        <input type="text" placeholder="Enter 4-digit OTP" value={form.otp}
+          onChange={update('otp')} required inputMode="numeric" maxLength={4} style={styles.input} />
       </div>
       <button type="submit" className="btn btn-primary" style={styles.submitBtn} disabled={submitting}>
         {submitting ? 'Creating Account...' : 'Verify & Create Account'}

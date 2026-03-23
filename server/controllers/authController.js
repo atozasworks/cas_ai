@@ -42,13 +42,39 @@ const hashOtp = (otp) =>
   crypto.createHash('sha256').update(String(otp)).digest('hex');
 
 const generateOtp = () =>
-  String(Math.floor(100000 + Math.random() * 900000));
+  String(Math.floor(Math.random() * 10000)).padStart(4, '0');
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 const pendingSignupOtps = new Map();
 
 const normalizeEmail = (email) =>
   String(email || '').trim().toLowerCase();
+
+const deriveNameFromEmail = (email) => {
+  const local = String(email || '').split('@')[0] || '';
+  const cleaned = local.replace(/[._-]+/g, ' ').trim();
+  if (cleaned.length >= 2) {
+    return cleaned
+      .split(' ')
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+  }
+  return 'CAS User';
+};
+
+const shouldUseDevOtpFallback = () =>
+  process.env.ALLOW_DEV_OTP_FALLBACK === 'true';
+
+const shouldExposeOtpInResponse = () =>
+  config.server.env !== 'production';
+
+let cachedOtpTransporter = null;
+let cachedOtpTransportKey = '';
+const SMTP_CONNECTION_TIMEOUT_MS = parseInt(process.env.SMTP_CONNECTION_TIMEOUT_MS, 10) || 8000;
+const SMTP_GREETING_TIMEOUT_MS = parseInt(process.env.SMTP_GREETING_TIMEOUT_MS, 10) || 8000;
+const SMTP_SOCKET_TIMEOUT_MS = parseInt(process.env.SMTP_SOCKET_TIMEOUT_MS, 10) || 12000;
+const SMTP_DNS_TIMEOUT_MS = parseInt(process.env.SMTP_DNS_TIMEOUT_MS, 10) || 5000;
 
 const clearExpiredSignupOtps = () => {
   const now = Date.now();
@@ -89,6 +115,13 @@ const sendOtpEmail = async (email, otp) => {
       service: smtpService,
       name: smtpName,
       auth: { user: smtpUser, pass: smtpPass },
+      pool: true,
+      maxConnections: 3,
+      maxMessages: 100,
+      connectionTimeout: SMTP_CONNECTION_TIMEOUT_MS,
+      greetingTimeout: SMTP_GREETING_TIMEOUT_MS,
+      socketTimeout: SMTP_SOCKET_TIMEOUT_MS,
+      dnsTimeout: SMTP_DNS_TIMEOUT_MS,
       tls: { rejectUnauthorized: tlsRejectUnauthorized },
     }
     : {
@@ -97,19 +130,55 @@ const sendOtpEmail = async (email, otp) => {
       port: smtpPort,
       secure: smtpSecure,
       auth: { user: smtpUser, pass: smtpPass },
+      pool: true,
+      maxConnections: 3,
+      maxMessages: 100,
+      connectionTimeout: SMTP_CONNECTION_TIMEOUT_MS,
+      greetingTimeout: SMTP_GREETING_TIMEOUT_MS,
+      socketTimeout: SMTP_SOCKET_TIMEOUT_MS,
+      dnsTimeout: SMTP_DNS_TIMEOUT_MS,
       tls: { rejectUnauthorized: tlsRejectUnauthorized },
     };
+  const transportKey = JSON.stringify({
+    smtpService,
+    smtpName,
+    smtpHost,
+    smtpPort,
+    smtpSecure,
+    smtpUser,
+    smtpPass,
+    tlsRejectUnauthorized,
+  });
 
-  const transporter = nodemailer.createTransport(transportOptions);
+  if (!cachedOtpTransporter || cachedOtpTransportKey !== transportKey) {
+    cachedOtpTransporter = nodemailer.createTransport(transportOptions);
+    cachedOtpTransportKey = transportKey;
+  }
 
   try {
-    await transporter.verify();
-    await transporter.sendMail({
+    const otpMailHtml = `
+      <div style="margin:0;padding:24px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+        <div style="max-width:460px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
+          <div style="padding:18px 20px;background:#0f172a;color:#ffffff;font-size:18px;font-weight:700;">
+            Collision Avoidance System
+          </div>
+          <div style="padding:20px;">
+            <p style="margin:0 0 12px;color:#334155;font-size:14px;">Use this OTP to continue login:</p>
+            <div style="margin:0 0 14px;padding:14px 16px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff;text-align:center;">
+              <span style="font-size:32px;line-height:1;font-weight:800;letter-spacing:8px;color:#1d4ed8;">${otp}</span>
+            </div>
+            <p style="margin:0;color:#64748b;font-size:13px;">This OTP expires in 10 minutes.</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    await cachedOtpTransporter.sendMail({
       from: smtpFrom,
       to: email,
       subject: 'Your CAS login OTP',
       text: `Your OTP is ${otp}. It expires in 10 minutes.`,
-      html: `<p>Your OTP is <strong>${otp}</strong>. It expires in 10 minutes.</p>`,
+      html: otpMailHtml,
     });
   } catch (err) {
     return { sent: false, reason: err.message || 'SMTP send failed' };
@@ -137,9 +206,17 @@ exports.requestOtp = asyncHandler(async (req, res, next) => {
   const email = normalizeEmail(req.body.email);
   const purpose = req.body.purpose || 'login';
 
-  const user = await User.findOne({ email });
+  let user = await User.findOne({ email });
   if (purpose === 'login' && !user) {
-    return next(new AppError('Email not registered. Please sign up.', 404));
+    // Sign-up UI is optional; auto-provision account so OTP login works directly.
+    const generatedPassword = crypto.randomBytes(24).toString('hex');
+    user = await User.create({
+      name: deriveNameFromEmail(email),
+      email,
+      password: generatedPassword,
+      phone: '',
+    });
+    await DriverScore.create({ userId: user._id });
   }
   if (purpose === 'signup' && user) {
     return next(new AppError('Email already registered. Please sign in.', 409));
@@ -160,13 +237,32 @@ exports.requestOtp = asyncHandler(async (req, res, next) => {
 
   const emailResult = await sendOtpEmail(email, otp);
   if (!emailResult.sent) {
+    if (shouldUseDevOtpFallback()) {
+      logger.warn('OTP email delivery failed, using development fallback', {
+        email,
+        purpose,
+        reason: emailResult.reason,
+      });
+      return res.json({
+        success: true,
+        message: 'OTP generated in development mode (email delivery unavailable)',
+        devOtp: otp,
+        otpText: `Your OTP is ${otp}. It expires in 10 minutes.`,
+      });
+    }
     return next(new AppError(`Unable to send OTP email: ${emailResult.reason}`, 500));
   }
-
-  res.json({
+  const response = {
     success: true,
     message: 'OTP sent to your email',
-  });
+  };
+
+  if (shouldExposeOtpInResponse()) {
+    response.devOtp = otp;
+    response.otpText = `Your OTP is ${otp}. It expires in 10 minutes.`;
+  }
+
+  res.json(response);
 });
 
 exports.login = asyncHandler(async (req, res, next) => {
