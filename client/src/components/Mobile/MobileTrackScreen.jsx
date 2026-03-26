@@ -97,7 +97,7 @@ export default function MobileTrackScreen() {
         <button
           type="button"
           className="btn btn-outline"
-          onClick={() => setShowRadar(!showRadar)}
+          onClick={() => setShowRadar((prev) => !prev)}
           style={{
             padding: '12px 20px',
             borderRadius: 12,
@@ -113,21 +113,18 @@ export default function MobileTrackScreen() {
       </div>
 
       {showRadar && (
-        <div className="mobile-track-radar-float" style={{ position: 'relative' }}>
-          <button
-            type="button"
-            onClick={() => setShowRadar(false)}
-            style={{
-              position: 'absolute', top: 4, right: 4, zIndex: 1,
-              background: 'rgba(0,0,0,0.15)', border: 'none', borderRadius: '50%',
-              width: 24, height: 24, minHeight: 24, minWidth: 24,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--text-muted)', fontSize: 14, cursor: 'pointer',
-            }}
-          >
-            ✕
-          </button>
-          <ProximityRadar nearbyVehicles={nearbyVehicles} riskLevel={riskLevel} />
+        <div className="mobile-track-radar-overlay" onClick={() => setShowRadar(false)}>
+          <div className="mobile-track-radar-float" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="mobile-track-radar-close"
+              onClick={() => setShowRadar(false)}
+              aria-label="Close radar"
+            >
+              X
+            </button>
+            <ProximityRadar nearbyVehicles={nearbyVehicles} riskLevel={riskLevel} />
+          </div>
         </div>
       )}
 

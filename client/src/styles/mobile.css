@@ -241,17 +241,45 @@
     pointer-events: auto;
   }
 
+  .mobile-track-radar-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+    padding: 16px;
+    padding-bottom: calc(152px + env(safe-area-inset-bottom, 0));
+    background: rgba(2, 6, 23, 0.16);
+  }
+
   .mobile-track-radar-float {
-    position: absolute;
-    right: 16px;
-    bottom: 88px;
-    bottom: calc(88px + env(safe-area-inset-bottom, 0));
-    z-index: 10;
+    position: relative;
     background: var(--bg-overlay);
     backdrop-filter: blur(12px);
     border: 1px solid var(--border-color);
     border-radius: 16px;
     padding: 12px;
+    width: min(260px, calc(100vw - 32px));
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+  }
+
+  .mobile-track-radar-close {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 1;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.18);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
   }
 
   /* --- Dashboard page: on mobile single column, hide when showing mobile home --- */
