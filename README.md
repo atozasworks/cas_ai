@@ -1,14 +1,14 @@
-# CAS AI - AI-Enhanced Collision Avoidance System
+# UCASA APP (Universal Collision Avoidance System Advisory App)
 
-[![Build](https://img.shields.io/github/actions/workflow/status/your-username/cas_ai/ci.yml?branch=main&style=for-the-badge)](https://github.com/your-username/cas_ai/actions)
+[![Build](https://img.shields.io/github/actions/workflow/status/atozasworks/cas_ai/ci.yml?branch=main&style=for-the-badge)](https://github.com/atozasworks/cas_ai/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](./LICENSE)
-[![Version](https://img.shields.io/github/v/release/your-username/cas_ai?style=for-the-badge)](https://github.com/your-username/cas_ai/releases)
+[![Version](https://img.shields.io/github/v/release/atozasworks/cas_ai?style=for-the-badge)](https://github.com/atozasworks/cas_ai/releases)
 
 A production-ready, real-time collision avoidance and emergency safety platform built with React, Node.js, Socket.IO, MongoDB, and Redis.
 
 ## Project Overview
 
-CAS AI helps drivers and fleet systems detect and react to potential collision risks in real time. The platform combines deterministic risk scoring with ML-ready decision fusion, live telemetry streaming, and a rich dashboard for alerts, analytics, and AI-assisted guidance.
+UCASA APP helps drivers and fleet systems detect and react to potential collision risks in real time. The platform combines deterministic risk scoring with ML-ready decision fusion, live telemetry streaming, and a rich dashboard for alerts, analytics, and AI-assisted guidance.
 
 ## Key Features
 
@@ -42,7 +42,7 @@ Add your actual screenshots inside `docs/screenshots/` and update the links.
 ### 1. Clone repository
 
 ```bash
-git clone https://github.com/your-username/cas_ai.git
+git clone https://github.com/atozasworks/cas_ai.git
 cd cas_ai
 ```
 

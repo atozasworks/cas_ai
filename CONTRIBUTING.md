@@ -1,13 +1,13 @@
-# Contributing to CAS AI
+# Contributing to UCASA APP
 
-Thank you for your interest in contributing to CAS AI.
+Thank you for your interest in contributing to UCASA APP (Universal Collision Avoidance System Advisory App).
 
 ## Getting Started
 
 1. Fork the repository.
 2. Clone your fork:
    ```bash
-   git clone https://github.com/your-username/cas_ai.git
+   git clone https://github.com/atozasworks/cas_ai.git
    cd cas_ai
    ```
 3. Create a branch for your work:
@@ -73,4 +73,4 @@ Use the issue templates under `.github/ISSUE_TEMPLATE`:
 
 Be respectful and constructive in discussions and reviews.
 
-Thanks for helping improve CAS AI.
+Thanks for helping improve UCASA APP.
