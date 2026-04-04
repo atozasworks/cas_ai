@@ -1,37 +1,11 @@
-# Dependencies
-node_modules/
+#history data
+.lh/
 
-# Environment
+#environment data
 .env
-.env.local
-.env.*.local
 
-# Build output
-client/build/
-dist/
+node_modules/
+build/
 
-# Logs
-server/logs/*.log
-*.log
-npm-debug.log*
-
-# OS files
-Thumbs.db
-Desktop.ini
-.DS_Store
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Redis dump
-dump.rdb
-
-# Coverage
-coverage/
-
-# Misc
-*.tgz
-.cache/
+#uploads
+uploads/

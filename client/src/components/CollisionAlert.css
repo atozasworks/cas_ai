@@ -1,0 +1,379 @@
+.collision-alert {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  color: black;
+  font-weight: bold;
+}
+
+/* Collision alert styling (red) */
+.collision-alert.collision {
+  background-color: rgba(255, 200, 200, 0.95);
+}
+
+.collision-alert.collision.blinking {
+  animation: blink-collision 0.5s infinite;
+}
+
+@keyframes blink-collision {
+  0%, 50% { 
+    background-color: rgba(255, 200, 200, 0.95);
+  }
+  51%, 100% { 
+    background-color: rgba(255, 255, 200, 0.95);
+  }
+}
+
+/* Warning alert styling (orange/yellow) */
+.collision-alert.warning {
+  background-color: rgba(255, 235, 200, 0.95);
+}
+
+.collision-alert.warning.blinking {
+  animation: blink-warning 1s infinite;
+}
+
+@keyframes blink-warning {
+  0%, 50% { 
+    background-color: rgba(255, 235, 200, 0.95);
+  }
+  51%, 100% { 
+    background-color: rgba(255, 255, 200, 0.95);
+  }
+}
+
+.alert-content {
+  text-align: center;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 40px;
+  border-radius: 20px;
+  border: 5px solid black;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+  max-width: 500px;
+}
+
+.alert-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.alert-text h2 {
+  font-size: 36px;
+  margin: 0 0 20px 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.alert-text p {
+  font-size: 18px;
+  margin: 10px 0;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.alert-text strong {
+  color: #ffff00;
+  font-size: 22px;
+}
+
+.vehicles-involved {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 20px;
+  border-radius: 10px;
+  margin: 20px 0;
+  border: 2px solid #ffff00;
+}
+
+.vehicles-involved h3 {
+  margin: 0 0 15px 0;
+  font-size: 20px;
+  color: #ffff00;
+  text-align: center;
+}
+
+.nearby-vehicle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.vehicle-pair {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.vehicle-info {
+  flex: 1;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.vehicle-name {
+  font-size: 24px;
+  font-weight: bold;
+  color: #ffff00;
+  margin-bottom: 5px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.vehicle-phone {
+  font-size: 14px;
+  color: #ffffff;
+  opacity: 0.9;
+}
+
+.vs-separator {
+  font-size: 30px;
+  color: #ff4444;
+  animation: flash 0.5s infinite;
+}
+
+@keyframes flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.distance-warning {
+  padding: 15px;
+  border-radius: 8px;
+  margin: 20px 0;
+  text-align: center;
+}
+
+.distance-warning.collision {
+  background: rgba(255, 68, 68, 0.3);
+  border: 2px solid #ff4444;
+}
+
+.distance-warning.warning {
+  background: rgba(255, 165, 0, 0.3);
+  border: 2px solid #ffa500;
+}
+
+.danger-text {
+  font-size: 20px !important;
+  color: #ff4444 !important;
+  font-weight: bold !important;
+  animation: pulse-text 1s infinite;
+}
+
+@keyframes pulse-text {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.timestamp {
+  font-size: 14px !important;
+  opacity: 0.8;
+  margin-top: 20px !important;
+}
+
+.dismiss-btn {
+  color: white;
+  border: 3px solid white;
+  padding: 15px 30px;
+  font-size: 18px;
+  font-weight: bold;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-top: 30px;
+  transition: all 0.3s ease;
+}
+
+.dismiss-btn.collision {
+  background-color: #ff4444;
+}
+
+.dismiss-btn.collision:hover {
+  background-color: #ff6666;
+  transform: scale(1.05);
+}
+
+.dismiss-btn.warning {
+  background-color: #ffa500;
+}
+
+.dismiss-btn.warning:hover {
+  background-color: #ffb733;
+  transform: scale(1.05);
+}.actio
+n-text {
+  font-size: 16px !important;
+  font-weight: bold !important;
+  margin-top: 10px !important;
+  color: #ffffff !important;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.collision .action-text {
+  color: #ff4444 !important;
+  animation: pulse-text 1s infinite;
+}
+
+.warning .action-text {
+  color: #ffa500 !important;
+}.driver-name {
+  font-size: 18px;
+  font-weight: bold;
+  color: #ffffff;
+  margin: 5px 0;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Vehicle list styles for combined alerts */
+.collision-vehicles-section,
+.warning-vehicles-section {
+  margin: 15px 0;
+}
+
+.collision-vehicles-section h3 {
+  color: #cc0000;
+  margin-bottom: 10px;
+  font-size: 1.1em;
+}
+
+.warning-vehicles-section h3 {
+  color: #cc6600;
+  margin-bottom: 10px;
+  font-size: 1.1em;
+}
+
+.vehicle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.vehicle-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 2px solid;
+}
+
+.collision-item {
+  background-color: rgba(255, 200, 200, 0.3);
+  border-color: #cc0000;
+}
+
+.warning-item {
+  background-color: rgba(255, 235, 200, 0.3);
+  border-color: #cc6600;
+}
+
+.vehicle-emoji {
+  font-size: 1.5em;
+  margin-right: 10px;
+  min-width: 30px;
+}
+
+.vehicle-details {
+  flex: 1;
+}
+
+.vehicle-name {
+  font-weight: bold;
+  font-size: 1em;
+  margin-bottom: 2px;
+}
+
+.vehicle-distance {
+  font-size: 0.9em;
+  opacity: 0.9;
+}
+
+.vehicle-direction {
+  font-size: 0.85em;
+  color: #000;
+  font-weight: bold;
+  margin-top: 2px;
+  opacity: 0.95;
+}
+
+.relative-direction {
+  display: inline-block;
+}
+
+.relative-direction strong {
+  color: #000;
+  font-size: 1em;
+}
+
+.compass-direction-small {
+  font-size: 0.8em;
+  opacity: 0.7;
+  font-weight: normal;
+  font-style: italic;
+}
+
+.vehicle-movement {
+  font-size: 0.85em;
+  font-weight: bold;
+  margin-top: 4px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.vehicle-movement.approaching {
+  background-color: rgba(255, 0, 0, 0.25);
+  color: #cc0000;
+  border: 1px solid #ff0000;
+  animation: pulse-movement 1s infinite;
+}
+
+.vehicle-movement.receding {
+  background-color: rgba(0, 200, 0, 0.25);
+  color: #006600;
+  border: 1px solid #00aa00;
+}
+
+@keyframes pulse-movement {
+  0%, 100% { 
+    background-color: rgba(255, 0, 0, 0.25);
+  }
+  50% { 
+    background-color: rgba(255, 0, 0, 0.4);
+  }
+}
+
+.movement-speed {
+  font-size: 0.9em;
+  opacity: 0.8;
+  font-weight: normal;
+}
+
+/* Mobile responsive for vehicle lists */
+@media (max-width: 768px) {
+  .vehicle-list {
+    max-height: 150px;
+  }
+
+  .vehicle-item {
+    padding: 6px 10px;
+  }
+
+  .vehicle-emoji {
+    font-size: 1.2em;
+    margin-right: 8px;
+  }
+}

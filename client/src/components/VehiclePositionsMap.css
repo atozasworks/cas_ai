@@ -1,0 +1,258 @@
+.vehicle-positions-map {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.map-header h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.2em;
+}
+
+.map-stats {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.stat {
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: #495057;
+  border: 1px solid #dee2e6;
+}
+
+.no-vehicles-map {
+  height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px dashed #dee2e6;
+}
+
+.no-vehicles-message {
+  text-align: center;
+  color: #6c757d;
+}
+
+.no-vehicles-message h4 {
+  margin: 0 0 10px 0;
+  color: #495057;
+}
+
+.no-vehicles-message p {
+  margin: 5px 0;
+}
+
+.hint {
+  font-size: 0.9em;
+  color: #6c757d;
+  margin-top: 10px !important;
+}
+
+.map-container {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.leaflet-map {
+  border-radius: 8px;
+}
+
+.custom-vehicle-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.vehicle-popup {
+  min-width: 250px;
+}
+
+.vehicle-popup h4 {
+  margin: 0 0 10px 0;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.current-user-badge {
+  background: #007bff;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7em;
+  font-weight: bold;
+}
+
+.popup-details p {
+  margin: 5px 0;
+  font-size: 0.9em;
+}
+
+.coordinates {
+  font-family: monospace;
+  background: #f8f9fa;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 0.8em !important;
+}
+
+.timestamp {
+  font-family: monospace;
+  font-size: 0.8em !important;
+  color: #6c757d;
+}
+
+.status-text {
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8em;
+}
+
+.status-text.safe {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-text.warning {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-text.collision {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-text.no-gps {
+  background: #e2e3e5;
+  color: #383d41;
+}
+
+.simulated-badge {
+  background: #e7f3ff;
+  color: #0066cc;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em !important;
+  font-weight: bold;
+  border: 1px solid #b3d9ff;
+}
+
+.map-legend {
+  margin-top: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.map-legend h4 {
+  margin: 0 0 10px 0;
+  color: #495057;
+  font-size: 1em;
+}
+
+.legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9em;
+  color: #495057;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.selected-vehicle-info {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #dee2e6;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.selected-vehicle-info h4 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.close-info-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.close-info-btn:hover {
+  background: #c82333;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .map-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .map-stats {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .legend-items {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .selected-vehicle-info {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin-top: 15px;
+  }
+}

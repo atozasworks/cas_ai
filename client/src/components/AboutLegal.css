@@ -1,0 +1,110 @@
+.about-legal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.about-legal-modal {
+  background: #ffffff;
+  color: #333333;
+  border-radius: 10px;
+  max-width: 480px;
+  width: 90%;
+  padding: 24px 28px 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  position: relative;
+  font-size: 14px;
+}
+
+.about-legal-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  color: #666666;
+}
+
+.about-legal-close:hover {
+  color: #000000;
+}
+
+.about-legal-intro {
+  margin-top: 6px;
+  margin-bottom: 14px;
+}
+
+.about-legal-section {
+  margin-top: 10px;
+  margin-bottom: 12px;
+}
+
+.about-legal-section h3 {
+  margin: 0 0 6px 0;
+  font-size: 15px;
+}
+
+.about-legal-section p {
+  margin: 0 0 8px 0;
+}
+
+.about-legal-links {
+  list-style: none;
+  padding-left: 0;
+  margin: 0 0 6px 0;
+}
+
+.about-legal-links li {
+  margin-bottom: 4px;
+}
+
+.about-legal-links a {
+  color: #2962ff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.about-legal-links a:hover {
+  text-decoration: underline;
+}
+
+.about-legal-note {
+  font-size: 12px;
+  color: #666666;
+}
+
+.about-legal-github-consent {
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 1px solid #eeeeee;
+  font-size: 13px;
+}
+
+.about-legal-github-consent label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.about-legal-github-consent input[type="checkbox"] {
+  cursor: pointer;
+}
+
+@media (max-width: 480px) {
+  .about-legal-modal {
+    padding: 20px 20px 16px;
+  }
+}
+
+

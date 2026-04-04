@@ -1,0 +1,32 @@
+.registration-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.registration-form input {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.registration-form input:focus {
+  outline: none;
+  border-color: #6c5ce7;
+}
+
+.add-vehicle-btn {
+  background-color: #6c5ce7;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
+}
+
+.add-vehicle-btn:hover {
+  background-color: #5a4fcf;
+}

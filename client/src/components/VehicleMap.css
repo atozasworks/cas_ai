@@ -1,0 +1,342 @@
+.vehicle-positions-panel {
+  flex: 2;
+  min-width: 500px;
+}
+
+.visual-map-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.vehicle-canvas {
+  width: 100%;
+  height: 300px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  cursor: crosshair;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.vehicle-tooltip {
+  position: fixed;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  pointer-events: none;
+  max-width: 250px;
+}
+
+.tooltip-content h4 {
+  margin: 0 0 8px 0;
+  color: #2d3436;
+  font-size: 14px;
+}
+
+.tooltip-content p {
+  margin: 4px 0;
+  font-size: 12px;
+  color: #636e72;
+}
+
+.tooltip-content strong {
+  color: #2d3436;
+}
+
+.visual-map-legend {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #495057;
+  font-weight: 500;
+}
+
+.legend-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.legend-dot.safe {
+  background-color: #27ae60;
+}
+
+.legend-dot.warning {
+  background-color: #f39c12;
+}
+
+.legend-dot.collision {
+  background-color: #e74c3c;
+}
+
+.legend-dot.no-gps {
+  background-color: #95a5a6;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .vehicle-positions-panel {
+    min-width: 300px;
+  }
+  
+  .vehicle-canvas {
+    height: 250px;
+  }
+  
+  .visual-map-legend {
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .tooltip-content {
+    font-size: 11px;
+  }
+}
+
+/* Animation for vehicle dots */
+@keyframes pulse-warning {
+  0%, 100% { 
+    transform: scale(1); 
+    opacity: 1; 
+  }
+  50% { 
+    transform: scale(1.2); 
+    opacity: 0.8; 
+  }
+}
+
+@keyframes pulse-danger {
+  0%, 100% { 
+    transform: scale(1); 
+    opacity: 1; 
+  }
+  50% { 
+    transform: scale(1.3); 
+    opacity: 0.9; 
+  }
+}
+
+/* Status colors for text */
+.status-safe {
+  color: #27ae60;
+  font-weight: bold;
+}
+
+.status-warning {
+  color: #f39c12;
+  font-weight: bold;
+}
+
+.status-collision {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+.status-no-gps {
+  color: #95a5a6;
+  font-weight: bold;
+}
+
+/* Vehicle Locations List */
+.vehicle-locations-list {
+  margin-top: 20px;
+}
+
+.vehicle-locations-list h4 {
+  margin: 0 0 15px 0;
+  color: #2d3436;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.no-vehicles-message {
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  padding: 20px;
+}
+
+.locations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 15px;
+}
+
+.location-card {
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.location-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.location-card.safe {
+  border-color: #27ae60;
+  background-color: #f8fff9;
+}
+
+.location-card.warning {
+  border-color: #f39c12;
+  background-color: #fffbf0;
+}
+
+.location-card.collision {
+  border-color: #e74c3c;
+  background-color: #fef5f5;
+}
+
+.location-card.no-gps {
+  border-color: #95a5a6;
+  background-color: #f8f9fa;
+}
+
+.location-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.vehicle-details {
+  flex: 1;
+}
+
+.vehicle-details h5 {
+  margin: 0 0 2px 0;
+  color: #2d3436;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.phone-number {
+  color: #636e72;
+  font-size: 12px;
+}
+
+.status-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.safe {
+  background-color: #27ae60;
+  color: white;
+}
+
+.status-badge.warning {
+  background-color: #f39c12;
+  color: white;
+}
+
+.status-badge.collision {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.status-badge.no-gps {
+  background-color: #95a5a6;
+  color: white;
+}
+
+.location-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.coordinate-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.coordinate-row:last-child {
+  border-bottom: none;
+}
+
+.coordinate-row .label {
+  font-size: 11px;
+  color: #636e72;
+  font-weight: 500;
+}
+
+.coordinate-row .coordinate {
+  font-size: 11px;
+  color: #2d3436;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.coordinate-row .value {
+  font-size: 11px;
+  color: #2d3436;
+  font-weight: 600;
+}
+
+.coordinate-row .value.simulated {
+  color: #f39c12;
+  font-weight: bold;
+}
+
+.no-location {
+  text-align: center;
+  padding: 15px;
+  color: #95a5a6;
+}
+
+.no-location p {
+  margin: 4px 0;
+  font-size: 12px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .locations-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .location-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
