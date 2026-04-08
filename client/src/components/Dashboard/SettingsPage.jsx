@@ -1,22 +1,54 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../hooks/useTheme';
 import { FiUser, FiShield, FiBell, FiSun, FiVolume2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 export default function SettingsPage() {
-  const { user, updatePreferences } = useAuth();
+  const { user, updatePreferences, updateProfile } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const [profileName, setProfileName] = useState(user?.name || '');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPreferences, setSavingPreferences] = useState(false);
   const [prefs, setPrefs] = useState(user?.preferences || {
     alertSound: true, voiceAlerts: true, darkMode: false, alertSensitivity: 'medium',
   });
 
+  useEffect(() => {
+    setProfileName(user?.name || '');
+    setPrefs(user?.preferences || {
+      alertSound: true, voiceAlerts: true, darkMode: false, alertSensitivity: 'medium',
+    });
+  }, [user]);
+
+  const handleProfileSave = async () => {
+    const trimmedName = profileName.trim();
+
+    if (trimmedName.length < 2) {
+      toast.error('Name must be at least 2 characters');
+      return;
+    }
+
+    try {
+      setSavingProfile(true);
+      await updateProfile({ name: trimmedName });
+      toast.success('Profile updated');
+    } catch (err) {
+      toast.error(err?.message || 'Failed to update profile');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   const handleSave = async () => {
     try {
+      setSavingPreferences(true);
       await updatePreferences(prefs);
       toast.success('Preferences saved');
-    } catch {
-      toast.error('Failed to save preferences');
+    } catch (err) {
+      toast.error(err?.message || 'Failed to save preferences');
+    } finally {
+      setSavingPreferences(false);
     }
   };
 
@@ -30,7 +62,23 @@ export default function SettingsPage() {
         <h3 style={styles.section}><FiUser /> Profile</h3>
         <div style={styles.infoRow}>
           <span style={styles.label}>Name</span>
-          <span style={styles.value}>{user?.name}</span>
+          <div style={styles.profileField}>
+            <input
+              type="text"
+              value={profileName}
+              onChange={(e) => setProfileName(e.target.value)}
+              style={styles.input}
+              placeholder="Enter your name"
+            />
+            <button
+              onClick={handleProfileSave}
+              className="btn btn-primary"
+              style={styles.profileSaveBtn}
+              disabled={savingProfile || profileName.trim() === (user?.name || '')}
+            >
+              {savingProfile ? 'Saving...' : 'Save Name'}
+            </button>
+          </div>
         </div>
         <div style={styles.infoRow}>
           <span style={styles.label}>Email</span>
@@ -119,8 +167,13 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <button onClick={handleSave} className="btn btn-primary" style={styles.saveBtn}>
-        Save Preferences
+      <button
+        onClick={handleSave}
+        className="btn btn-primary"
+        style={styles.saveBtn}
+        disabled={savingPreferences}
+      >
+        {savingPreferences ? 'Saving...' : 'Save Preferences'}
       </button>
     </div>
   );
@@ -136,9 +189,33 @@ const styles = {
   infoRow: {
     display: 'flex', justifyContent: 'space-between', padding: '10px 0',
     borderBottom: '1px solid var(--border-color)',
+    gap: 16,
   },
   label: { color: 'var(--text-muted)', fontSize: 14 },
   value: { color: 'var(--text-primary)', fontSize: 14, fontWeight: 500 },
+  profileField: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: 10,
+    flex: 1,
+    maxWidth: 280,
+  },
+  input: {
+    width: '100%',
+    padding: '10px 12px',
+    fontSize: 14,
+    borderRadius: 8,
+    border: '1px solid var(--border-color)',
+    background: 'var(--bg-tertiary)',
+    color: 'var(--text-primary)',
+  },
+  profileSaveBtn: {
+    width: '100%',
+    minHeight: 42,
+    fontSize: 14,
+    fontWeight: 600,
+  },
   settingRow: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     padding: '14px 0', borderBottom: '1px solid var(--border-color)',

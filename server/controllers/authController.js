@@ -51,6 +51,17 @@ exports.getMe = asyncHandler(async (req, res) => {
   res.json({ success: true, user: user.toSafeObject() });
 });
 
+exports.updateProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  user.name = req.body.name;
+  await user.save();
+
+  res.json({
+    success: true,
+    user: user.toSafeObject(),
+  });
+});
+
 exports.updatePreferences = asyncHandler(async (req, res) => {
   const user = await User.findByIdAndUpdate(
     req.user._id,

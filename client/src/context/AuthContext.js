@@ -56,12 +56,23 @@ export function AuthProvider({ children }) {
 
   const updatePreferences = async (prefs) => {
     const data = await authAPI.updatePreferences(prefs);
-    setUser((prev) => ({ ...prev, preferences: data.preferences }));
+    setUser((prev) => {
+      const nextUser = { ...prev, preferences: data.preferences };
+      localStorage.setItem('cas_user', JSON.stringify(nextUser));
+      return nextUser;
+    });
+  };
+
+  const updateProfile = async (profile) => {
+    const data = await authAPI.updateProfile(profile);
+    setUser(data.user);
+    localStorage.setItem('cas_user', JSON.stringify(data.user));
+    return data.user;
   };
 
   return (
     <AuthContext.Provider value={{
-      user, token, loading, login, register, logout, updatePreferences,
+      user, token, loading, login, register, logout, updatePreferences, updateProfile,
       isAuthenticated: !!user,
     }}>
       {children}
