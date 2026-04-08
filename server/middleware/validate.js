@@ -29,6 +29,10 @@ const schemas = {
     password: Joi.string().required(),
   }),
 
+  updateProfile: Joi.object({
+    name: Joi.string().min(2).max(100).required(),
+  }),
+
   vehicleCreate: Joi.object({
     plateNumber: Joi.string().min(2).max(20).required(),
     type: Joi.string().valid('car', 'truck', 'motorcycle', 'bus', 'emergency', 'bicycle').required(),
