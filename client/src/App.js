@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import AuthPage from './components/Common/AuthPage';
+import LandingPage from './components/Common/LandingPage';
 import SplashScreen from './components/Mobile/SplashScreen';
 import Navbar from './components/Common/Navbar';
 import BottomNav from './components/Mobile/BottomNav';
@@ -33,7 +34,7 @@ function TrackRoute() {
   return <Navigate to="/" replace />;
 }
 
-function MobileLoginGate() {
+function MobileLoginGate({ initialMode = 'login' }) {
   const { isAuthenticated } = useAuth();
   const isMobile = useIsMobile();
   const [splashDone, setSplashDone] = useState(false);
@@ -42,7 +43,7 @@ function MobileLoginGate() {
   if (isMobile && !splashDone) {
     return <SplashScreen onFinish={() => setSplashDone(true)} />;
   }
-  return <AuthPage />;
+  return <AuthPage initialMode={initialMode} />;
 }
 
 function AppRoutes() {
@@ -79,10 +80,10 @@ function AppRoutes() {
       {isAuthenticated && <BottomNav />}
       <Routes>
         <Route path="/login" element={
-          isAuthenticated ? <Navigate to="/" replace /> : <MobileLoginGate />
+          isAuthenticated ? <Navigate to="/" replace /> : <MobileLoginGate initialMode="login" />
         } />
         <Route path="/" element={
-          <PrivateRoute><DashboardPage /></PrivateRoute>
+          isAuthenticated ? <DashboardPage /> : <LandingPage />
         } />
         <Route path="/track" element={
           <PrivateRoute><TrackRoute /></PrivateRoute>

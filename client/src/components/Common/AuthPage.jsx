@@ -25,8 +25,8 @@ function loadGsiScript() {
   return gsiLoadPromise;
 }
 
-export default function AuthPage() {
-  const [isLogin, setIsLogin] = useState(true);
+export default function AuthPage({ initialMode = 'login' }) {
+  const [isLogin, setIsLogin] = useState(initialMode !== 'register');
   const [form, setForm] = useState({ name: '', email: '', phone: '', otp: '' });
   const [otpSent, setOtpSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -36,6 +36,15 @@ export default function AuthPage() {
   const { login, requestOtp, verifySignupOtp, register, googleAuth } = useAuth();
   const googleBtnRef = useRef(null);
   const loginGoogleBtnRef = useRef(null);
+
+  useEffect(() => {
+    const shouldLoginMode = initialMode !== 'register';
+    setIsLogin(shouldLoginMode);
+    setOtpSent(false);
+    setOtpVerified(false);
+    setSignupStep(SIGNUP_STEPS.DETAILS);
+    setForm({ name: '', email: '', phone: '', otp: '' });
+  }, [initialMode]);
 
   /* ── Google callback ── */
   const handleGoogleResponse = useCallback(async (response) => {
