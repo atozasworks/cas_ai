@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const config = require('../config');
 
 router.use('/auth', require('./authRoutes'));
 router.use('/vehicles', require('./vehicleRoutes'));
@@ -12,6 +13,14 @@ router.get('/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
+  });
+});
+
+router.get('/app-config', (req, res) => {
+  res.json({
+    success: true,
+    apiUrl: config.publicClient.apiUrl || '/api/v1',
+    googleClientId: config.publicClient.googleClientId || '',
   });
 });
 

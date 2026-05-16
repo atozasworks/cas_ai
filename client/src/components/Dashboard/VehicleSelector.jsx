@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 export default function VehicleSelector() {
   const [vehicles, setVehicles] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
-  const [newVehicle, setNewVehicle] = useState({ plateNumber: '', type: 'car', make: '', model: '' });
+  const [newVehicle, setNewVehicle] = useState({ plateNumber: '', type: 'car', make: '', model: '', phone: '' });
   const { activeVehicleId, startTracking, stopTracking } = useSocket();
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function VehicleSelector() {
     try {
       await vehicleAPI.create(newVehicle);
       toast.success('Vehicle added');
-      setNewVehicle({ plateNumber: '', type: 'car', make: '', model: '' });
+      setNewVehicle({ plateNumber: '', type: 'car', make: '', model: '', phone: '' });
       setShowAdd(false);
       loadVehicles();
     } catch (err) {
@@ -77,7 +77,7 @@ export default function VehicleSelector() {
             <option value="bus">Bus</option>
             <option value="bicycle">Bicycle</option>
           </select>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="vehicle-make-model-row" style={{ display: 'flex', gap: 8 }}>
             <input placeholder="Make" value={newVehicle.make}
               onChange={(e) => setNewVehicle({ ...newVehicle, make: e.target.value })}
               style={{ ...styles.input, flex: 1 }} />
@@ -85,6 +85,16 @@ export default function VehicleSelector() {
               onChange={(e) => setNewVehicle({ ...newVehicle, model: e.target.value })}
               style={{ ...styles.input, flex: 1 }} />
           </div>
+          <input
+            type="tel"
+            placeholder="Phone Number"
+            value={newVehicle.phone}
+            onChange={(e) => setNewVehicle({ ...newVehicle, phone: e.target.value })}
+            required
+            pattern="^\+?[\d\s-]{7,15}$"
+            title="Enter a valid phone number"
+            style={styles.input}
+          />
           <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '8px 0' }}>
             Save Vehicle
           </button>

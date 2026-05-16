@@ -31,14 +31,21 @@ const createRedisClient = (label = 'primary') => {
 };
 
 const connectRedis = async () => {
+  let pub = null;
+  let sub = null;
   try {
-    redisClient = createRedisClient('primary');
-    redisSub = createRedisClient('subscriber');
-    await redisClient.connect();
-    await redisSub.connect();
+    pub = createRedisClient('primary');
+    sub = createRedisClient('subscriber');
+    await pub.connect();
+    await sub.connect();
+    redisClient = pub;
+    redisSub = sub;
     logger.info('Redis clients initialized');
   } catch (err) {
     logger.warn('Redis connection failed — running without cache:', err.message);
+    // Disconnect the clients to stop background reconnect retry loops.
+    if (pub) { try { pub.disconnect(); } catch (_) {} }
+    if (sub) { try { sub.disconnect(); } catch (_) {} }
     redisClient = null;
     redisSub = null;
   }

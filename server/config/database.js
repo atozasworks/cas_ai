@@ -3,6 +3,7 @@ const config = require('./index');
 const logger = require('../middleware/logger');
 
 let isConnected = false;
+let listenersAttached = false;
 
 const connectDB = async () => {
   if (isConnected) return;
@@ -12,22 +13,26 @@ const connectDB = async () => {
     isConnected = true;
     logger.info(`MongoDB connected: ${conn.connection.host}:${conn.connection.port}/${conn.connection.name}`);
 
-    mongoose.connection.on('error', (err) => {
-      logger.error('MongoDB connection error:', err);
-    });
+    if (!listenersAttached) {
+      listenersAttached = true;
 
-    mongoose.connection.on('disconnected', () => {
-      isConnected = false;
-      logger.warn('MongoDB disconnected. Attempting reconnection...');
-    });
+      mongoose.connection.on('error', (err) => {
+        logger.error('MongoDB connection error:', err);
+      });
 
-    mongoose.connection.on('reconnected', () => {
-      isConnected = true;
-      logger.info('MongoDB reconnected');
-    });
+      mongoose.connection.on('disconnected', () => {
+        isConnected = false;
+        logger.warn('MongoDB disconnected. Attempting reconnection...');
+      });
+
+      mongoose.connection.on('reconnected', () => {
+        isConnected = true;
+        logger.info('MongoDB reconnected');
+      });
+    }
   } catch (err) {
     logger.error('MongoDB connection failed:', err.message);
-    process.exit(1);
+    throw err;
   }
 };
 
@@ -38,4 +43,6 @@ const disconnectDB = async () => {
   logger.info('MongoDB disconnected gracefully');
 };
 
-module.exports = { connectDB, disconnectDB };
+const isDBConnected = () => isConnected;
+
+module.exports = { connectDB, disconnectDB, isDBConnected };

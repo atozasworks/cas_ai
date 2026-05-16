@@ -33,6 +33,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  loginOtpHash: {
+    type: String,
+    select: false,
+  },
+  loginOtpExpiresAt: {
+    type: Date,
+    select: false,
+  },
   role: {
     type: String,
     enum: ['driver', 'fleet_manager', 'admin'],
@@ -53,8 +61,6 @@ const userSchema = new mongoose.Schema({
   toObject: { virtuals: true },
 });
 
-userSchema.index({ email: 1 });
-
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 12);
@@ -68,6 +74,8 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 userSchema.methods.toSafeObject = function () {
   const obj = this.toObject();
   delete obj.password;
+  delete obj.loginOtpHash;
+  delete obj.loginOtpExpiresAt;
   return obj;
 };
 

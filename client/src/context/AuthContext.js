@@ -29,8 +29,12 @@ export function AuthProvider({ children }) {
     loadUser();
   }, [loadUser]);
 
-  const login = async (email, password) => {
-    const data = await authAPI.login({ email, password });
+  const requestOtp = async (email, purpose = 'login') => authAPI.requestOtp({ email, purpose });
+
+  const verifySignupOtp = async (email, otp) => authAPI.verifySignupOtp({ email, otp });
+
+  const login = async (email, otp) => {
+    const data = await authAPI.login({ email, otp });
     localStorage.setItem('cas_token', data.token);
     localStorage.setItem('cas_user', JSON.stringify(data.user));
     setToken(data.token);
@@ -38,12 +42,27 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  const register = async (name, email, password, phone) => {
-    const data = await authAPI.register({ name, email, password, phone });
+  const register = async (name, email, phone, otp) => {
+    const data = await authAPI.registerWithOtp({ name, email, phone, otp });
     localStorage.setItem('cas_token', data.token);
     localStorage.setItem('cas_user', JSON.stringify(data.user));
     setToken(data.token);
     setUser(data.user);
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('cas_show_welcome_splash', '1');
+    }
+    return data;
+  };
+
+  const googleAuth = async (credential) => {
+    const data = await authAPI.googleAuth({ credential });
+    localStorage.setItem('cas_token', data.token);
+    localStorage.setItem('cas_user', JSON.stringify(data.user));
+    setToken(data.token);
+    setUser(data.user);
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('cas_show_welcome_splash', '1');
+    }
     return data;
   };
 
@@ -61,6 +80,13 @@ export function AuthProvider({ children }) {
       localStorage.setItem('cas_user', JSON.stringify(nextUser));
       return nextUser;
     });
+  };
+
+  const updateProfile = async (profile) => {
+    const data = await authAPI.updateProfile(profile);
+    setUser(data.user);
+    localStorage.setItem('cas_user', JSON.stringify(data.user));
+    return data.user;
   };
 
   const updateProfile = async (profile) => {

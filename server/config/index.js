@@ -3,6 +3,32 @@ const path = require('path');
 
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
+const parseCsv = (value) =>
+  String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const parseOrigins = parseCsv;
+const localDevOrigins = ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:7760'];
+const configuredOrigins = parseOrigins(process.env.CORS_ORIGINS || process.env.CLIENT_URL);
+const allowedOrigins = Array.from(
+  new Set(
+    process.env.NODE_ENV === 'development'
+      ? [...configuredOrigins, ...localDevOrigins]
+      : configuredOrigins
+  )
+);
+const googleClientIds = Array.from(
+  new Set(parseCsv(process.env.GOOGLE_CLIENT_IDS || process.env.GOOGLE_CLIENT_ID))
+);
+const publicApiUrl = process.env.PUBLIC_API_URL || process.env.REACT_APP_API_URL || '/api/v1';
+const publicGoogleClientId =
+  process.env.PUBLIC_GOOGLE_CLIENT_ID
+  || process.env.REACT_APP_GOOGLE_CLIENT_ID
+  || process.env.GOOGLE_CLIENT_ID
+  || '';
+
 const config = {
   server: {
     port: parseInt(process.env.PORT, 10) || 5000,
@@ -26,7 +52,7 @@ const config = {
     port: parseInt(process.env.REDIS_PORT, 10) || 6379,
     password: process.env.REDIS_PASSWORD || undefined,
     retryDelayMs: 3000,
-    maxRetries: 10,
+    maxRetries: 3,
   },
 
   jwt: {
@@ -45,7 +71,7 @@ const config = {
     proximityThresholdMeters: parseFloat(process.env.PROXIMITY_THRESHOLD_METERS) || 500,
     criticalDistanceMeters: parseFloat(process.env.CRITICAL_DISTANCE_METERS) || 20,
     /** Distance (m) at which to show popup + sound alert when another vehicle is nearby */
-    proximityAlertMeters: parseFloat(process.env.PROXIMITY_ALERT_METERS) || 10,
+    proximityAlertMeters: parseFloat(process.env.PROXIMITY_ALERT_METERS) || 1,
     gpsUpdateIntervalMs: parseInt(process.env.GPS_UPDATE_INTERVAL_MS, 10) || 3000,
     weights: {
       proximity: parseFloat(process.env.WEIGHT_PROXIMITY) || 0.35,
@@ -58,6 +84,20 @@ const config = {
   socket: {
     pingInterval: parseInt(process.env.SOCKET_PING_INTERVAL, 10) || 10000,
     pingTimeout: parseInt(process.env.SOCKET_PING_TIMEOUT, 10) || 5000,
+  },
+
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
+    clientIds: googleClientIds,
+  },
+
+  publicClient: {
+    apiUrl: String(publicApiUrl || '/api/v1').trim(),
+    googleClientId: String(publicGoogleClientId || '').trim(),
+  },
+
+  cors: {
+    allowedOrigins,
   },
 
   rateLimit: {

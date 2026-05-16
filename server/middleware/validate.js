@@ -20,13 +20,39 @@ const schemas = {
   register: Joi.object({
     name: Joi.string().min(2).max(100).required(),
     email: Joi.string().email().required(),
-    password: Joi.string().min(6).max(128).required(),
-    phone: Joi.string().pattern(/^\+?[\d\s-]{7,15}$/).optional(),
+    password: Joi.string().min(6).max(128).optional(),
+    phone: Joi.string().pattern(/^\+?[\d\s-]{7,15}$/).required(),
   }),
 
   login: Joi.object({
     email: Joi.string().email().required(),
-    password: Joi.string().required(),
+    otp: Joi.string().pattern(/^\d{4}$/).required(),
+  }),
+
+  requestOtp: Joi.object({
+    email: Joi.string().email().required(),
+    purpose: Joi.string().valid('login', 'signup').default('login'),
+  }),
+
+  registerOtp: Joi.object({
+    name: Joi.string().min(2).max(100).required(),
+    email: Joi.string().email().required(),
+    phone: Joi.string().pattern(/^\+?[\d\s-]{7,15}$/).required(),
+    otp: Joi.string().pattern(/^\d{4}$/).required(),
+  }),
+
+  verifySignupOtp: Joi.object({
+    email: Joi.string().email().required(),
+    otp: Joi.string().pattern(/^\d{4}$/).required(),
+  }),
+
+  googleAuth: Joi.object({
+    credential: Joi.string().required(),
+  }),
+
+  profileUpdate: Joi.object({
+    name: Joi.string().min(2).max(100).required(),
+    email: Joi.string().email().required(),
   }),
 
   updateProfile: Joi.object({
@@ -38,6 +64,7 @@ const schemas = {
     type: Joi.string().valid('car', 'truck', 'motorcycle', 'bus', 'emergency', 'bicycle').required(),
     make: Joi.string().max(50).optional(),
     model: Joi.string().max(50).optional(),
+    phone: Joi.string().pattern(/^\+?[\d\s-]{7,15}$/).required(),
     year: Joi.number().integer().min(1900).max(2030).optional(),
     color: Joi.string().max(30).optional(),
   }),
