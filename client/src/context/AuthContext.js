@@ -89,13 +89,6 @@ export function AuthProvider({ children }) {
     return data.user;
   };
 
-  const updateProfile = async (profile) => {
-    const data = await authAPI.updateProfile(profile);
-    setUser(data.user);
-    localStorage.setItem('cas_user', JSON.stringify(data.user));
-    return data.user;
-  };
-
   return (
     <AuthContext.Provider value={{
       user, token, loading, login, register, logout, updatePreferences, updateProfile,

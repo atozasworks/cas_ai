@@ -7,12 +7,26 @@ import toast from 'react-hot-toast';
 export default function SettingsPage() {
   const { user, updatePreferences, updateProfile } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const [profileName, setProfileName] = useState(user?.name || '');
-  const [savingProfile, setSavingProfile] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+  });
+  const [profileSubmitting, setProfileSubmitting] = useState(false);
   const [savingPreferences, setSavingPreferences] = useState(false);
   const [prefs, setPrefs] = useState(user?.preferences || {
     alertSound: true, voiceAlerts: true, darkMode: false, alertSensitivity: 'medium',
   });
+
+  useEffect(() => {
+    setProfileForm({
+      name: user?.name || '',
+      email: user?.email || '',
+    });
+    setPrefs(user?.preferences || {
+      alertSound: true, voiceAlerts: true, darkMode: false, alertSensitivity: 'medium',
+    });
+  }, [user]);
 
   const handleSave = async () => {
     try {
@@ -32,8 +46,12 @@ export default function SettingsPage() {
     const name = profileForm.name.trim();
     const email = profileForm.email.trim();
 
-    if (!name || !email) {
-      toast.error('Name and email are required');
+    if (name.length < 2) {
+      toast.error('Name must be at least 2 characters');
+      return;
+    }
+    if (!email) {
+      toast.error('Email is required');
       return;
     }
 
@@ -95,7 +113,16 @@ export default function SettingsPage() {
         </div>
         <div style={styles.infoRow}>
           <span style={styles.label}>Name</span>
-          <span style={styles.value}>{user?.name}</span>
+          {isEditingProfile ? (
+            <input
+              type="text"
+              value={profileForm.name}
+              onChange={(e) => setProfileForm((prev) => ({ ...prev, name: e.target.value }))}
+              style={styles.profileInput}
+            />
+          ) : (
+            <span style={styles.value}>{user?.name}</span>
+          )}
         </div>
         <div style={styles.infoRow}>
           <span style={styles.label}>Email</span>
