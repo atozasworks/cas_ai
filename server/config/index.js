@@ -10,7 +10,13 @@ const parseCsv = (value) =>
     .filter(Boolean);
 
 const parseOrigins = parseCsv;
-const localDevOrigins = ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:7760'];
+const localDevOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:5000',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5000',
+];
 const configuredOrigins = parseOrigins(process.env.CORS_ORIGINS || process.env.CLIENT_URL);
 const allowedOrigins = Array.from(
   new Set(
