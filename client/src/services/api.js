@@ -44,7 +44,9 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !isAuthAttempt) {
       localStorage.removeItem('cas_token');
       localStorage.removeItem('cas_user');
-      window.location.href = '/login';
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error.response?.data || error);
   }
