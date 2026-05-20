@@ -408,9 +408,9 @@ const styles = {
   left: { display: 'flex', alignItems: 'center', gap: 32 },
   brand: { display: 'flex', alignItems: 'center', textDecoration: 'none', lineHeight: 0 },
   brandLogo: {
-    height: 48,
+    height: 42,
     width: 'auto',
-    maxWidth: 280,
+    maxWidth: 240,
     display: 'block',
     objectFit: 'contain',
   },
