@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../hooks/useTheme';
 import { FiUser, FiShield, FiBell, FiSun, FiVolume2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import InstallAppPrompt from '../Common/InstallAppPrompt';
 
 export default function SettingsPage() {
   const { user, updatePreferences, updateProfile } = useAuth();
@@ -69,6 +70,8 @@ export default function SettingsPage() {
   return (
     <div style={styles.page} className="mobile-page-padding mobile-main mobile-settings-page">
       <h2 style={styles.pageTitle}>Settings</h2>
+
+      <InstallAppPrompt variant="card" />
 
       <div className="card" style={{ marginBottom: 20 }}>
         <div style={styles.profileHeader}>

@@ -68,12 +68,6 @@ app.use('/api/v1', (req, res, next) => {
 
 // ───────── Serve React Build ─────────
 
-const PWA_ASSET_PATTERN = /^\/(manifest\.json|manifest\.webmanifest|sw\.js|pwa-sw\.js|service-worker\.js|workbox-[^/]+\.js|icons\/icon-\d+\.png)(\?.*)?$/i;
-
-app.get(PWA_ASSET_PATTERN, (req, res) => {
-  res.status(410).set('Cache-Control', 'no-store').type('text/plain').send('PWA disabled');
-});
-
 const PROD_BUILD = '/home/testatozas-casai/htdocs/casai.testatozas.in/build';
 const DEV_BUILD = path.join(__dirname, '..', 'client', 'build');
 const BUILD_PATH = process.env.BUILD_PATH || PROD_BUILD;
