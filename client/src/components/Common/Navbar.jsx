@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import { useTheme } from '../../hooks/useTheme';
-import { FiMap, FiBarChart2, FiSettings, FiLogOut, FiSun, FiMoon, FiWifi, FiWifiOff, FiChevronDown, FiCamera } from 'react-icons/fi';
+import { FiMap, FiBarChart2, FiSettings, FiLogOut, FiSun, FiMoon, FiWifi, FiWifiOff, FiChevronDown, FiCamera, FiShield } from 'react-icons/fi';
 
 const AVATAR_PREVIEW_SIZE = 220;
 const AVATAR_OUTPUT_SIZE = 256;
@@ -219,12 +219,8 @@ export default function Navbar() {
       <nav className="navbar" style={styles.nav}>
         <div style={styles.left}>
           <Link to="/" style={styles.brand}>
-            <img
-              src={`${process.env.PUBLIC_URL}/ucasaapp-logo.png`}
-              srcSet={`${process.env.PUBLIC_URL}/ucasaapp-logo@2x.png 2x`}
-              alt="UCASAAPP"
-              style={styles.brandLogo}
-            />
+            <FiShield style={{ color: '#3b82f6', fontSize: 24 }} />
+            <span style={styles.brandText}>CAS</span>
           </Link>
           <div className="navbar-desktop-links" style={styles.links}>
             {navItems.map((item) => (
@@ -406,14 +402,8 @@ const styles = {
     zIndex: 100,
   },
   left: { display: 'flex', alignItems: 'center', gap: 32 },
-  brand: { display: 'flex', alignItems: 'center', textDecoration: 'none', lineHeight: 0 },
-  brandLogo: {
-    height: 42,
-    width: 'auto',
-    maxWidth: 240,
-    display: 'block',
-    objectFit: 'contain',
-  },
+  brand: { display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' },
+  brandText: { fontWeight: 800, fontSize: 18, color: 'var(--text-primary)', letterSpacing: 1 },
   links: { display: 'flex', gap: 4 },
   link: {
     display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',

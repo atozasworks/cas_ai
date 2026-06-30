@@ -15,7 +15,6 @@ import EmergencyOverlay from './components/Emergency/EmergencyOverlay';
 import VehicleNearbyPopup from './components/Dashboard/VehicleNearbyPopup';
 import MobileTrackScreen from './components/Mobile/MobileTrackScreen';
 import { useIsMobile } from './hooks/useIsMobile';
-import InstallAppPrompt from './components/Common/InstallAppPrompt';
 
 function PrivateRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -75,7 +74,6 @@ function AppRoutes() {
 
   return (
     <>
-      <InstallAppPrompt bottom={isAuthenticated && isMobile ? 72 : 20} />
       {isAuthenticated && <Navbar />}
       {isAuthenticated && <EmergencyOverlay />}
       {isAuthenticated && <VehicleNearbyPopup />}
