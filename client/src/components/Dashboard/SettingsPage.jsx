@@ -113,7 +113,7 @@ export default function SettingsPage() {
 
         <div className="setting-row" style={styles.settingRow}>
           <div>
-            <div style={styles.settingLabel}><FiVolume2 /> Voice Alerts</div>
+            <div style={styles.settingLabel}><FiVolume2 /> Voice Alerts,Voice Alerts,Voice Alerts,Voice Alerts</div>
             <div style={styles.settingDesc}>Spoken warnings for high-risk events</div>
           </div>
           <span className="setting-control">
