@@ -32,7 +32,7 @@ export default function LandingPage() {
       <nav style={styles.navbar}>
         <div style={styles.brandBlock}>
           <div style={styles.brand}>UCASAAPP</div>
-          <div style={styles.brandSub}>Universal Collision Avoidance System Advisory App (chaithra p)</div>
+          <div style={styles.brandSub}>Universal Collision Avoidance System Advisory App (chaithra)</div>
         </div>
         <div style={styles.navActions}>
           <button
