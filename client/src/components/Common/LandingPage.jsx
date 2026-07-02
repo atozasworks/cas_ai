@@ -63,6 +63,11 @@ export default function LandingPage() {
             <div className="landing-page__brand">UCASAAPP</div>
             <div className="landing-page__brand-sub">Universal Collision Avoidance System Advisory App</div>
           </div>
+    <div style={styles.page}>
+      <nav style={styles.navbar}>
+        <div style={styles.brandBlock}>
+          <div style={styles.brand}>UCASAAPP....navya...</div>
+          <div style={styles.brandSub}>Universal Collision Avoidance System Advisory App</div>
         </div>
         <div className="landing-page__nav-actions">
           <button
