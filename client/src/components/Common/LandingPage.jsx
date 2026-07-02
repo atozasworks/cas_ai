@@ -48,7 +48,7 @@ export default function LandingPage() {
 
       <main style={styles.main}>
         <section style={styles.hero}>
-          <h1 style={styles.title}>Universal Collision Avoidance System Advisory App</h1>
+          <h1 style={styles.title}>Universal Collision.... Avoidance System Advisory App</h1>
           <p style={styles.subtitle}>
             Advanced safety system that quickly detects accidents, sends emergency alerts, tracks location with GPS, and reports incidents for vehicles and machines.
           </p>
