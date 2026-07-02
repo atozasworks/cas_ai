@@ -19,10 +19,10 @@
     font-size: 16px !important;
   }
 
-  /* --- Touch-friendly, no hover reliance --- */
-  button,
-  a,
-  [role="button"] {
+  /* --- Touch-friendly, no hover reliance (app shell only) --- */
+  .mobile-root button,
+  .mobile-root a,
+  .mobile-root [role="button"] {
     min-height: 48px;
     min-width: 48px;
     display: inline-flex;
