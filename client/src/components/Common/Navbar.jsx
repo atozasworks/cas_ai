@@ -220,7 +220,7 @@ export default function Navbar() {
         <div style={styles.left}>
           <Link to="/" style={styles.brand}>
             <FiShield style={{ color: '#3b82f6', fontSize: 24 }} />
-            <span style={styles.brandText}>CASakhia</span>
+            <span style={styles.brandText}>CASakhiaaaaaaaaaaaaa</span>
           </Link>
           <div className="navbar-desktop-links" style={styles.links}>
             {navItems.map((item) => (
