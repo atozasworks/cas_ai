@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { FiAlertTriangle, FiBell, FiMapPin, FiX } from 'react-icons/fi';
+import { FiAlertTriangle, FiBell, FiMapPin, FiShield, FiX } from 'react-icons/fi';
 
 const GITHUB_REPO_URL = String(process.env.REACT_APP_GITHUB_REPO_URL || '').trim();
+const CURRENT_YEAR = new Date().getFullYear();
 
 export default function LandingPage() {
   const [legalOpen, setLegalOpen] = useState(false);
@@ -97,8 +98,61 @@ export default function LandingPage() {
       </main>
 
       <footer style={styles.footer}>
-        <div>Powered by ATOZAS</div>
-        <div>Open Source - Built with care for Road Safety</div>
+        <div style={styles.footerInner}>
+          <div style={styles.footerBrand}>
+            <div style={styles.footerLogoRow}>
+              <div style={styles.footerLogo}>
+                <FiShield />
+              </div>
+              <div>
+                <div style={styles.footerBrandName}>UCASAAPP</div>
+                <div style={styles.footerBrandSub}>Powered by ATOZAS</div>
+              </div>
+            </div>
+            <p style={styles.footerDescription}>
+              Professional collision avoidance advisory platform for safer roads, faster alerts, and smarter incident response.
+            </p>
+            <div style={styles.footerBadge}>Open Source Road Safety Initiative</div>
+          </div>
+
+          <div style={styles.footerColumns}>
+            <div style={styles.footerColumn}>
+              <h4 style={styles.footerHeading}>Platform</h4>
+              <Link to="/login" style={styles.footerLink}>Open App</Link>
+              <button type="button" onClick={() => setLegalOpen(true)} style={styles.footerButtonLink}>
+                Start Contribute
+              </button>
+              {GITHUB_REPO_URL && (
+                <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer" style={styles.footerLink}>
+                  GitHub Repository
+                </a>
+              )}
+            </div>
+
+            <div style={styles.footerColumn}>
+              <h4 style={styles.footerHeading}>Safety</h4>
+              <span style={styles.footerMutedLink}>Accident Detection</span>
+              <span style={styles.footerMutedLink}>Emergency Alerts</span>
+              <span style={styles.footerMutedLink}>GPS Tracking</span>
+            </div>
+
+            <div style={styles.footerColumn}>
+              <h4 style={styles.footerHeading}>Company</h4>
+              <span style={styles.footerMutedLink}>AtoZ Automation Solutions Pvt. Ltd.</span>
+              <button type="button" onClick={() => setLegalOpen(true)} style={styles.footerButtonLink}>
+                Privacy &amp; Terms
+              </button>
+              <button type="button" onClick={() => setLegalOpen(true)} style={styles.footerButtonLink}>
+                MIT License
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style={styles.footerBottom}>
+          <span>&copy; {CURRENT_YEAR} AtoZ Automation Solutions Pvt. Ltd. All rights reserved.</span>
+          <span>Built with care for public safety.</span>
+        </div>
       </footer>
 
       {legalOpen && (
@@ -318,13 +372,125 @@ const styles = {
   footer: {
     marginTop: 'auto',
     borderTop: '1px solid var(--border-color)',
-    padding: '16px 20px 20px',
-    color: 'var(--text-muted)',
-    fontSize: 13,
+    background: 'linear-gradient(180deg, var(--bg-secondary), rgba(15, 23, 42, 0.98))',
+    padding: '36px 20px 22px',
+    color: 'var(--text-secondary)',
+  },
+  footerInner: {
+    width: '100%',
+    maxWidth: 1120,
+    margin: '0 auto',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 32,
+  },
+  footerBrand: {
+    flex: '1 1 280px',
     display: 'flex',
     flexDirection: 'column',
-    gap: 4,
+    alignItems: 'flex-start',
+    gap: 14,
+  },
+  footerLogoRow: {
+    display: 'flex',
     alignItems: 'center',
+    gap: 12,
+  },
+  footerLogo: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    background: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
+    color: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 22,
+    boxShadow: '0 12px 28px rgba(37, 99, 235, 0.28)',
+  },
+  footerBrandName: {
+    fontSize: 18,
+    fontWeight: 800,
+    color: 'var(--text-primary)',
+    letterSpacing: 0.8,
+  },
+  footerBrandSub: {
+    fontSize: 12,
+    color: 'var(--text-muted)',
+    marginTop: 2,
+  },
+  footerDescription: {
+    margin: 0,
+    color: 'var(--text-secondary)',
+    fontSize: 14,
+    lineHeight: 1.6,
+    maxWidth: 420,
+  },
+  footerBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    border: '1px solid rgba(59, 130, 246, 0.35)',
+    background: 'rgba(59, 130, 246, 0.12)',
+    color: '#93c5fd',
+    borderRadius: 999,
+    padding: '6px 10px',
+    fontSize: 12,
+    fontWeight: 700,
+  },
+  footerColumns: {
+    flex: '2 1 460px',
+    minWidth: 0,
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+    gap: 22,
+  },
+  footerColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 9,
+  },
+  footerHeading: {
+    margin: '0 0 3px',
+    color: 'var(--text-primary)',
+    fontSize: 14,
+    fontWeight: 800,
+    letterSpacing: 0.2,
+  },
+  footerLink: {
+    color: 'var(--text-secondary)',
+    fontSize: 14,
+    textDecoration: 'none',
+    lineHeight: 1.4,
+  },
+  footerButtonLink: {
+    border: 'none',
+    background: 'transparent',
+    color: 'var(--text-secondary)',
+    fontSize: 14,
+    lineHeight: 1.4,
+    padding: 0,
+    textAlign: 'left',
+    fontFamily: 'inherit',
+    cursor: 'pointer',
+  },
+  footerMutedLink: {
+    color: 'var(--text-muted)',
+    fontSize: 14,
+    lineHeight: 1.4,
+  },
+  footerBottom: {
+    width: '100%',
+    maxWidth: 1120,
+    margin: '28px auto 0',
+    paddingTop: 18,
+    borderTop: '1px solid var(--border-color)',
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: 12,
+    flexWrap: 'wrap',
+    color: 'var(--text-muted)',
+    fontSize: 13,
   },
   modalOverlay: {
     position: 'fixed',
