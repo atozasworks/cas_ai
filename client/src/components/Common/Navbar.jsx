@@ -216,21 +216,18 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="navbar" style={styles.nav}>
-        <div style={styles.left}>
-          <Link to="/" style={styles.brand}>
-            <FiShield style={{ color: '#3b82f6', fontSize: 24 }} />
-            <span style={styles.brandText}>CAS</span>
+      <nav className="navbar">
+        <div className="navbar-left">
+          <Link to="/" className="navbar-brand">
+            <FiShield className="navbar-brand-icon" />
+            <span className="navbar-brand-text">CAS</span>
           </Link>
-          <div className="navbar-desktop-links" style={styles.links}>
+          <div className="navbar-desktop-links navbar-links">
             {navItems.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
-                style={{
-                  ...styles.link,
-                  ...(location.pathname === item.to ? styles.activeLink : {}),
-                }}
+                className={`navbar-link${location.pathname === item.to ? ' navbar-link--active' : ''}`}
               >
                 {item.icon}
                 <span>{item.label}</span>
@@ -238,89 +235,88 @@ export default function Navbar() {
             ))}
           </div>
         </div>
-        <div className="navbar-right" style={styles.right}>
-          <div style={styles.status}>
-            {connected
-              ? <><FiWifi style={{ color: '#22c55e' }} /> <span style={{ color: '#22c55e', fontSize: 12 }}>Live</span></>
-              : <><FiWifiOff style={{ color: '#ef4444' }} /> <span style={{ color: '#ef4444', fontSize: 12 }}>Offline</span></>
-            }
+        <div className="navbar-right">
+          <div className="navbar-status">
+            {connected ? (
+              <>
+                <FiWifi style={{ color: 'var(--accent-green)' }} />
+                <span className="navbar-status-text navbar-status-text--live">Live</span>
+              </>
+            ) : (
+              <>
+                <FiWifiOff style={{ color: 'var(--accent-red)' }} />
+                <span className="navbar-status-text navbar-status-text--offline">Offline</span>
+              </>
+            )}
           </div>
-          <button onClick={toggleTheme} style={styles.iconBtn} title="Toggle theme">
+          <button onClick={toggleTheme} className="navbar-icon-btn" title="Toggle theme">
             {theme === 'dark' ? <FiSun /> : <FiMoon />}
           </button>
 
-          {/* Profile Dropdown */}
-          <div ref={dropdownRef} style={styles.profileWrapper}>
+          <div ref={dropdownRef} className="navbar-profile-wrapper">
             <input
               ref={avatarInputRef}
               type="file"
               accept="image/*"
               onChange={handleAvatarChange}
-              style={styles.hiddenInput}
+              className="navbar-hidden-input"
             />
             <button
               onClick={() => setShowDropdown(!showDropdown)}
-              style={styles.profileBtn}
+              className="navbar-profile-btn"
               title="Profile"
             >
               <div
-                style={styles.avatar}
+                className="navbar-avatar"
                 onClick={handleAvatarClick}
                 onMouseEnter={() => setAvatarHover(true)}
                 onMouseLeave={() => setAvatarHover(false)}
                 title="Change profile photo"
               >
                 {avatarImage ? (
-                  <img src={avatarImage} alt="Profile" style={styles.avatarImage} />
+                  <img src={avatarImage} alt="Profile" className="navbar-avatar-image" />
                 ) : (
-                  <span style={styles.avatarLetter}>{avatarInitial}</span>
+                  <span className="navbar-avatar-letter">{avatarInitial}</span>
                 )}
-                <div style={{ ...styles.avatarOverlay, opacity: avatarHover ? 1 : 0 }}>
+                <div className="navbar-avatar-overlay" style={{ opacity: avatarHover ? 1 : 0 }}>
                   <FiCamera size={13} />
                 </div>
               </div>
-              <span className="navbar-user-name" style={styles.profileName}>{user?.name}</span>
-              <FiChevronDown style={{
-                fontSize: 14, color: 'var(--text-muted)',
-                transition: 'transform 0.2s',
-                transform: showDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
-              }} />
+              <span className="navbar-user-name navbar-profile-name">{user?.name}</span>
+              <FiChevronDown className={`navbar-chevron${showDropdown ? ' navbar-chevron--open' : ''}`} />
             </button>
 
             {showDropdown && (
-              <div style={styles.dropdown}>
-                {/* User info */}
-                <div style={styles.dropdownHeader}>
-                  <div style={styles.dropdownAvatar}>
+              <div className="navbar-dropdown">
+                <div className="navbar-dropdown-header">
+                  <div className="navbar-dropdown-avatar">
                     {avatarImage ? (
-                      <img src={avatarImage} alt="Profile" style={styles.avatarImage} />
+                      <img src={avatarImage} alt="Profile" className="navbar-avatar-image" />
                     ) : (
-                      <span style={styles.avatarLetter}>{avatarInitial}</span>
+                      <span className="navbar-avatar-letter">{avatarInitial}</span>
                     )}
                   </div>
                   <div>
-                    <div style={styles.dropdownName}>{user?.name}</div>
-                    <div style={styles.dropdownEmail}>{user?.email}</div>
+                    <div className="navbar-dropdown-name">{user?.name}</div>
+                    <div className="navbar-dropdown-email">{user?.email}</div>
                   </div>
                 </div>
 
-                <div style={styles.dropdownDivider} />
+                <div className="navbar-dropdown-divider" />
 
-                {/* Settings */}
                 <button
                   onClick={() => { navigate('/settings'); setShowDropdown(false); }}
-                  style={styles.dropdownItem}
+                  className="navbar-dropdown-item"
                 >
                   <FiSettings style={{ fontSize: 16 }} />
                   <span>Settings</span>
                 </button>
 
-                <div style={styles.dropdownDivider} />
+                <div className="navbar-dropdown-divider" />
 
-                {/* Logout */}
                 <button
                   onClick={() => { logout(); setShowDropdown(false); }}
-                  style={{ ...styles.dropdownItem, color: '#ef4444' }}
+                  className="navbar-dropdown-item navbar-dropdown-item--danger"
                 >
                   <FiLogOut style={{ fontSize: 16 }} />
                   <span>Logout</span>
@@ -332,13 +328,13 @@ export default function Navbar() {
       </nav>
 
       {avatarModalOpen && (
-        <div style={styles.avatarModalOverlay} onClick={handleAvatarModalCancel}>
-          <div style={styles.avatarModalCard} onClick={(event) => event.stopPropagation()}>
-            <h3 style={styles.avatarModalTitle}>Adjust Profile Photo</h3>
-            <p style={styles.avatarModalText}>Drag to move, use slider to zoom</p>
+        <div className="navbar-avatar-modal-overlay" onClick={handleAvatarModalCancel}>
+          <div className="navbar-avatar-modal-card" onClick={(event) => event.stopPropagation()}>
+            <h3 className="navbar-avatar-modal-title">Adjust Profile Photo</h3>
+            <p className="navbar-avatar-modal-text">Drag to move, use slider to zoom</p>
 
             <div
-              style={{ ...styles.cropArea, cursor: dragState.active ? 'grabbing' : 'grab' }}
+              className={`navbar-crop-area ${dragState.active ? 'navbar-crop-area--grabbing' : 'navbar-crop-area--grab'}`}
               onPointerDown={handleCropPointerDown}
               onPointerMove={handleCropPointerMove}
               onPointerUp={handleCropPointerEnd}
@@ -348,8 +344,8 @@ export default function Navbar() {
                 <img
                   src={selectedAvatarSrc}
                   alt="Avatar preview"
+                  className="navbar-crop-image"
                   style={{
-                    ...styles.cropImage,
                     width: previewSize.width,
                     height: previewSize.height,
                     transform: `translate(calc(-50% + ${cropOffset.x}px), calc(-50% + ${cropOffset.y}px))`,
@@ -357,11 +353,11 @@ export default function Navbar() {
                   draggable={false}
                 />
               )}
-              <div style={styles.cropRing} />
+              <div className="navbar-crop-ring" />
             </div>
 
-            <div style={styles.zoomRow}>
-              <span style={styles.zoomLabel}>Zoom</span>
+            <div className="navbar-zoom-row">
+              <span className="navbar-zoom-label">Zoom</span>
               <input
                 type="range"
                 min="1"
@@ -369,15 +365,15 @@ export default function Navbar() {
                 step="0.01"
                 value={cropZoom}
                 onChange={handleCropZoomChange}
-                style={styles.zoomSlider}
+                className="navbar-zoom-slider"
               />
             </div>
 
-            <div style={styles.avatarModalActions}>
-              <button type="button" onClick={handleAvatarModalCancel} style={styles.avatarCancelBtn}>
+            <div className="navbar-avatar-modal-actions">
+              <button type="button" onClick={handleAvatarModalCancel} className="navbar-avatar-cancel-btn">
                 Cancel
               </button>
-              <button type="button" onClick={handleAvatarModalSave} style={styles.avatarSaveBtn}>
+              <button type="button" onClick={handleAvatarModalSave} className="navbar-avatar-save-btn">
                 Save
               </button>
             </div>
@@ -387,221 +383,3 @@ export default function Navbar() {
     </>
   );
 }
-
-const styles = {
-  nav: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 24px',
-    height: 56,
-    background: 'var(--bg-secondary)',
-    borderBottom: '1px solid var(--border-color)',
-    position: 'sticky',
-    top: 0,
-    zIndex: 100,
-  },
-  left: { display: 'flex', alignItems: 'center', gap: 32 },
-  brand: { display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' },
-  brandText: { fontWeight: 800, fontSize: 18, color: 'var(--text-primary)', letterSpacing: 1 },
-  links: { display: 'flex', gap: 4 },
-  link: {
-    display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
-    borderRadius: 8, color: 'var(--text-secondary)', textDecoration: 'none',
-    fontSize: 14, fontWeight: 500, transition: 'all 0.2s',
-  },
-  activeLink: {
-    background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6',
-  },
-  right: { display: 'flex', alignItems: 'center', gap: 10 },
-  status: { display: 'flex', alignItems: 'center', gap: 4 },
-  iconBtn: {
-    background: 'none', border: 'none', color: 'var(--text-secondary)',
-    fontSize: 18, cursor: 'pointer', padding: 6, borderRadius: 6,
-    display: 'flex', alignItems: 'center',
-  },
-  profileWrapper: {
-    position: 'relative',
-  },
-  profileBtn: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    padding: '4px 10px 4px 4px', borderRadius: 50,
-    background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)',
-    cursor: 'pointer', transition: 'all 0.2s',
-  },
-  hiddenInput: {
-    display: 'none',
-  },
-  avatar: {
-    width: 32, height: 32, borderRadius: '50%',
-    background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-    color: '#fff', fontSize: 14, fontWeight: 700,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0, position: 'relative', overflow: 'hidden',
-    cursor: 'pointer',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    display: 'block',
-  },
-  avatarLetter: {
-    fontSize: 14,
-    fontWeight: 700,
-    color: '#fff',
-    lineHeight: 1,
-  },
-  avatarOverlay: {
-    position: 'absolute',
-    inset: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'rgba(2, 6, 23, 0.58)',
-    color: '#e2e8f0',
-    transition: 'opacity 0.2s ease',
-    pointerEvents: 'none',
-  },
-  profileName: {
-    fontSize: 13, fontWeight: 600, color: 'var(--text-primary)',
-    maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-  },
-  /* Dropdown */
-  dropdown: {
-    position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-    minWidth: 220, background: 'var(--bg-secondary)',
-    border: '1px solid var(--border-color)', borderRadius: 12,
-    boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
-    padding: '6px 0', zIndex: 200,
-    animation: 'fadeSlideDown 0.15s ease',
-  },
-  dropdownHeader: {
-    display: 'flex', alignItems: 'center', gap: 10,
-    padding: '12px 16px',
-  },
-  dropdownAvatar: {
-    width: 38, height: 38, borderRadius: '50%',
-    background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-    color: '#fff', fontSize: 16, fontWeight: 700,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0,
-    overflow: 'hidden',
-  },
-  dropdownName: {
-    fontSize: 14, fontWeight: 700, color: 'var(--text-primary)',
-  },
-  dropdownEmail: {
-    fontSize: 12, color: 'var(--text-muted)', marginTop: 1,
-  },
-  dropdownDivider: {
-    height: 1, background: 'var(--border-color)', margin: '4px 0',
-  },
-  dropdownItem: {
-    display: 'flex', alignItems: 'center', gap: 10,
-    width: '100%', padding: '10px 16px', fontSize: 14, fontWeight: 500,
-    color: 'var(--text-primary)', background: 'none', border: 'none',
-    cursor: 'pointer', transition: 'background 0.15s',
-  },
-  avatarModalOverlay: {
-    position: 'fixed',
-    inset: 0,
-    zIndex: 400,
-    background: 'rgba(2, 6, 23, 0.7)',
-    backdropFilter: 'blur(4px)',
-    WebkitBackdropFilter: 'blur(4px)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-  },
-  avatarModalCard: {
-    width: '100%',
-    maxWidth: 420,
-    borderRadius: 18,
-    padding: 22,
-    background: 'linear-gradient(165deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.98))',
-    border: '1px solid rgba(148, 163, 184, 0.24)',
-    boxShadow: '0 24px 56px rgba(2, 6, 23, 0.56)',
-  },
-  avatarModalTitle: {
-    margin: 0,
-    color: '#f8fafc',
-    fontSize: 20,
-    fontWeight: 700,
-  },
-  avatarModalText: {
-    margin: '6px 0 16px',
-    color: '#94a3b8',
-    fontSize: 13,
-  },
-  cropArea: {
-    width: AVATAR_PREVIEW_SIZE,
-    height: AVATAR_PREVIEW_SIZE,
-    margin: '0 auto',
-    borderRadius: '50%',
-    position: 'relative',
-    overflow: 'hidden',
-    background: 'rgba(51, 65, 85, 0.65)',
-    boxShadow: 'inset 0 0 0 2px rgba(148, 163, 184, 0.3), 0 10px 24px rgba(2, 6, 23, 0.42)',
-    touchAction: 'none',
-    userSelect: 'none',
-  },
-  cropImage: {
-    position: 'absolute',
-    left: '50%',
-    top: '50%',
-    transformOrigin: 'center',
-    willChange: 'transform',
-  },
-  cropRing: {
-    position: 'absolute',
-    inset: 0,
-    borderRadius: '50%',
-    border: '2px solid rgba(191, 219, 254, 0.75)',
-    pointerEvents: 'none',
-  },
-  zoomRow: {
-    marginTop: 16,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-  },
-  zoomLabel: {
-    color: '#e2e8f0',
-    fontSize: 13,
-    fontWeight: 600,
-    minWidth: 42,
-  },
-  zoomSlider: {
-    width: '100%',
-    accentColor: '#3b82f6',
-  },
-  avatarModalActions: {
-    marginTop: 18,
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: 10,
-  },
-  avatarCancelBtn: {
-    border: '1px solid rgba(148, 163, 184, 0.32)',
-    background: 'rgba(51, 65, 85, 0.55)',
-    color: '#e2e8f0',
-    borderRadius: 12,
-    padding: '11px 14px',
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: 'pointer',
-  },
-  avatarSaveBtn: {
-    border: 'none',
-    background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-    color: '#fff',
-    borderRadius: 12,
-    padding: '11px 14px',
-    fontSize: 14,
-    fontWeight: 700,
-    cursor: 'pointer',
-    boxShadow: '0 10px 22px rgba(37, 99, 235, 0.35)',
-  },
-};

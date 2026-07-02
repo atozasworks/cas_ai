@@ -20,7 +20,7 @@ function PrivateRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+      <div className="app-loading">
         <div className="spinner" />
       </div>
     );
@@ -55,7 +55,7 @@ function AppRoutes() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+      <div className="app-loading">
         <div className="spinner" />
       </div>
     );

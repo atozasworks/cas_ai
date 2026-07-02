@@ -146,7 +146,7 @@ export default function VehicleNearbyPopup() {
   }, []);
 
   const handleEmergencyNotify = useCallback((number, message) => {
-    const text = encodeURIComponent(message || 'Emergency alert from Collision Avoidance System.');
+    const text = encodeURIComponent(message || 'Emergency alert from Smart Collision Shield.');
     window.location.href = `sms:${number}?body=${text}`;
   }, []);
 

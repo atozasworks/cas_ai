@@ -2,6 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles/global.css';
+import './styles/pages.css';
+import './styles/navbar.css';
 import './styles/mobile.css';
 import { loadRuntimeConfig } from './services/runtimeConfig';
 import { setApiBaseUrl } from './services/api';

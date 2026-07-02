@@ -52,12 +52,8 @@ export default function DashboardPage() {
       <div className="mobile-root">
         <div className="mobile-dashboard-wrap mobile-main">
           {behaviorAlert && (
-            <div style={{ ...styles.behaviorBanner, marginBottom: 0 }}>
-              <span style={styles.behaviorIcon}>
-                {behaviorAlert.type === 'hard_brake' ? '!!!' :
-                 behaviorAlert.type === 'sharp_turn' ? '!!!' :
-                 behaviorAlert.type === 'overspeed' ? '!!!' : '!!!'}
-              </span>
+            <div className="dashboard-behavior-banner dashboard-behavior-banner--mobile">
+              <span className="dashboard-behavior-icon">!!!</span>
               {behaviorAlert.message}
             </div>
           )}
@@ -94,23 +90,17 @@ export default function DashboardPage() {
   }
 
   return (
-    <div style={styles.page}>
-      {/* Behavior Alert Banner */}
+    <div className="dashboard-page">
       {behaviorAlert && (
-        <div style={styles.behaviorBanner}>
-          <span style={styles.behaviorIcon}>
-            {behaviorAlert.type === 'hard_brake' ? '!!!' :
-             behaviorAlert.type === 'sharp_turn' ? '!!!' :
-             behaviorAlert.type === 'overspeed' ? '!!!' : '!!!'}
-          </span>
+        <div className="dashboard-behavior-banner">
+          <span className="dashboard-behavior-icon">!!!</span>
           {behaviorAlert.message}
         </div>
       )}
 
-      <div style={styles.mainGrid}>
-        {/* Left Column: Map + Vehicles */}
-        <div style={styles.leftCol}>
-          <div className="card" style={styles.mapCard}>
+      <div className="dashboard-main-grid">
+        <div className="dashboard-left-col">
+          <div className="card dashboard-map-card">
             <TrackingMap userName={user?.name} activeVehicle={activeVehicle} vehicles={vehicles} allMapVehicles={allMapVehicles} />
           </div>
           <div className="card">
@@ -118,27 +108,22 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Right Column: Risk Panel */}
-        <div style={styles.rightCol}>
-          {/* Risk Meter */}
+        <div className="dashboard-right-col">
           <div className="card">
             <RiskMeter riskScore={riskScore} riskLevel={riskLevel} />
           </div>
 
-          {/* Alert Panel */}
           <AlertPanel riskData={riskData} />
 
-          {/* Radar + Escape */}
-          <div style={styles.radarEscapeRow}>
-            <div className="card" style={{ flex: 1 }}>
+          <div className="dashboard-radar-row">
+            <div className="card">
               <ProximityRadar nearbyVehicles={nearbyVehicles} riskLevel={riskLevel} />
             </div>
-            <div className="card" style={{ flex: 1 }}>
+            <div className="card">
               <EscapeArrow escapePath={riskData?.escapePath} riskLevel={riskLevel} />
             </div>
           </div>
 
-          {/* AI Assistant */}
           <div className="card">
             <AIAssistant />
           </div>
@@ -147,53 +132,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-const styles = {
-  page: {
-    padding: 16,
-    maxWidth: 1400,
-    margin: '0 auto',
-  },
-  behaviorBanner: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '10px 16px',
-    marginBottom: 12,
-    background: 'rgba(234, 179, 8, 0.15)',
-    border: '1px solid rgba(234, 179, 8, 0.3)',
-    borderRadius: 10,
-    color: '#eab308',
-    fontSize: 14,
-    fontWeight: 600,
-    animation: 'fadeIn 0.3s ease',
-  },
-  behaviorIcon: {
-    fontSize: 16,
-  },
-  mainGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 380px',
-    gap: 16,
-    alignItems: 'start',
-  },
-  leftCol: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 16,
-  },
-  mapCard: {
-    padding: 0,
-    overflow: 'hidden',
-    height: 500,
-  },
-  rightCol: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 16,
-  },
-  radarEscapeRow: {
-    display: 'flex',
-    gap: 12,
-  },
-};

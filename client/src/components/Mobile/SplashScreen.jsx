@@ -8,7 +8,7 @@ const SLIDES = [
     id: 'app',
     image: splashImage,
     title: '',
-    subtitle: 'Collision Avoidance System',
+    subtitle: 'Smart Collision Shield',
     text: 'AI-enhanced real-time safety. Track your vehicle, get risk alerts, and drive with confidence.',
     accent: 'var(--accent-blue)',
   },

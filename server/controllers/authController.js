@@ -93,7 +93,7 @@ const sendOtpEmail = async (email, otp) => {
   const smtpSecure = process.env.SMTP_SECURE === 'true';
   const smtpUser = process.env.SMTP_EMAIL || process.env.SMTP_USER;
   const smtpPass = process.env.SMTP_EMAIL_PASSWORD || process.env.SMTP_PASS;
-  const smtpFrom = process.env.SMTP_FROM || smtpUser || 'Collision Avoidance System <no-reply@cas.local>';
+  const smtpFrom = process.env.SMTP_FROM || smtpUser || 'Smart Collision Shield <no-reply@cas.local>';
   const tlsRejectUnauthorized = process.env.SMTP_TLS_REJECT_UNAUTHORIZED !== 'false';
 
   if (!smtpUser || !smtpPass) {
@@ -160,7 +160,7 @@ const sendOtpEmail = async (email, otp) => {
       <div style="margin:0;padding:24px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
         <div style="max-width:460px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
           <div style="padding:18px 20px;background:#0f172a;color:#ffffff;font-size:18px;font-weight:700;">
-            Collision Avoidance System
+            Smart Collision Shield
           </div>
           <div style="padding:20px;">
             <p style="margin:0 0 12px;color:#334155;font-size:14px;">Use this OTP to continue login:</p>
