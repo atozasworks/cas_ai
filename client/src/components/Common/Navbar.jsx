@@ -3,7 +3,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import { useTheme } from '../../hooks/useTheme';
-import { FiShield, FiMap, FiBarChart2, FiSettings, FiLogOut, FiSun, FiMoon, FiWifi, FiWifiOff, FiChevronDown, FiCamera } from 'react-icons/fi';
+import { usePwaInstall } from '../../hooks/usePwaInstall';
+import { FiShield, FiMap, FiBarChart2, FiSettings, FiLogOut, FiSun, FiMoon, FiWifi, FiWifiOff, FiChevronDown, FiCamera, FiDownload } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 
 const AVATAR_PREVIEW_SIZE = 220;
 const AVATAR_OUTPUT_SIZE = 256;
@@ -23,6 +25,7 @@ export default function Navbar() {
   const [cropZoom, setCropZoom] = useState(1);
   const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
   const [dragState, setDragState] = useState({ active: false, x: 0, y: 0, startX: 0, startY: 0 });
+  const { canInstall, isStandalone, promptInstall } = usePwaInstall();
   const dropdownRef = useRef(null);
   const avatarInputRef = useRef(null);
 
@@ -36,6 +39,26 @@ export default function Navbar() {
       // Ignore storage read issues (private mode / blocked storage)
     }
   }, []);
+
+  const handleDownloadApp = async () => {
+    setShowDropdown(false);
+    if (isStandalone) {
+      toast.success('UCASAAPP is already installed');
+      return;
+    }
+    const result = await promptInstall();
+    if (!result.ok) {
+      if (result.reason === 'unavailable') {
+        toast.error('Install is not available on this browser right now');
+      } else {
+        toast.error('Could not start install');
+      }
+      return;
+    }
+    if (result.outcome === 'accepted') {
+      toast.success('UCASAAPP installed successfully');
+    }
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -314,6 +337,19 @@ export default function Navbar() {
                   <FiSettings style={{ fontSize: 16 }} />
                   <span>Settings</span>
                 </button>
+
+                {!isStandalone && (
+                  <button
+                    onClick={handleDownloadApp}
+                    style={{
+                      ...styles.dropdownItem,
+                      opacity: canInstall ? 1 : 0.65,
+                    }}
+                  >
+                    <FiDownload style={{ fontSize: 16 }} />
+                    <span>Download App</span>
+                  </button>
+                )}
 
                 <div style={styles.dropdownDivider} />
 

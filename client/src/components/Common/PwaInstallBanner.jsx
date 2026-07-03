@@ -1,17 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { FiDownload, FiX } from 'react-icons/fi';
+import { usePwaInstall } from '../../hooks/usePwaInstall';
 import './PwaInstallBanner.css';
 
 const DISMISS_KEY = 'cas_pwa_install_dismissed';
 const DISMISS_DAYS = 7;
 const APP_LOGO = `${process.env.PUBLIC_URL || ''}/images/ucasapp.png`;
-
-function isStandalone() {
-  return (
-    window.matchMedia('(display-mode: standalone)').matches
-    || window.navigator.standalone === true
-  );
-}
 
 function isDismissed() {
   try {
@@ -28,32 +22,13 @@ function isDismissed() {
 
 export default function PwaInstallBanner() {
   const [visible, setVisible] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [installing, setInstalling] = useState(false);
+  const { canInstall, isStandalone, promptInstall } = usePwaInstall();
 
   useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-    if (isStandalone() || isDismissed()) return undefined;
-
-    const onBeforeInstall = (event) => {
-      event.preventDefault();
-      setDeferredPrompt(event);
-      setVisible(true);
-    };
-
-    const onInstalled = () => {
-      setVisible(false);
-      setDeferredPrompt(null);
-    };
-
-    window.addEventListener('beforeinstallprompt', onBeforeInstall);
-    window.addEventListener('appinstalled', onInstalled);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', onBeforeInstall);
-      window.removeEventListener('appinstalled', onInstalled);
-    };
-  }, []);
+    if (isStandalone || isDismissed()) return;
+    if (canInstall) setVisible(true);
+  }, [canInstall, isStandalone]);
 
   const dismiss = useCallback(() => {
     try {
@@ -65,23 +40,18 @@ export default function PwaInstallBanner() {
   }, []);
 
   const handleInstall = useCallback(async () => {
-    if (!deferredPrompt) return;
     setInstalling(true);
     try {
-      await deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
+      const result = await promptInstall();
+      if (result.ok && result.outcome === 'accepted') {
         setVisible(false);
       }
-    } catch {
-      /* user cancelled or prompt failed */
     } finally {
-      setDeferredPrompt(null);
       setInstalling(false);
     }
-  }, [deferredPrompt]);
+  }, [promptInstall]);
 
-  if (!visible || !deferredPrompt) return null;
+  if (!visible || !canInstall) return null;
 
   return (
     <div className="pwa-install-banner" role="region" aria-label="Install app">
