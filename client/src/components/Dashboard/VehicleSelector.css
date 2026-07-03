@@ -1,3 +1,8 @@
+.vehicle-add-form {
+  overflow: visible;
+  position: relative;
+}
+
 .vehicle-add-form input,
 .vehicle-add-form select {
   color: var(--text-primary);

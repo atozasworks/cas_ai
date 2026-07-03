@@ -16,6 +16,7 @@ export default function SearchableDropdown({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const wrapperRef = useRef(null);
+  const inputRef = useRef(null);
 
   const normalizedOptions = useMemo(
     () => options.filter(Boolean),
@@ -39,10 +40,31 @@ export default function SearchableDropdown({
       }
     };
     document.addEventListener('mousedown', handleOutside);
-    return () => document.removeEventListener('mousedown', handleOutside);
+    document.addEventListener('touchstart', handleOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('touchstart', handleOutside);
+    };
   }, []);
 
+  const openDropdown = () => {
+    if (disabled) return;
+    setOpen(true);
+    setQuery(value || '');
+  };
+
   const closeDropdown = () => setOpen(false);
+
+  const toggleDropdown = () => {
+    if (disabled) return;
+    if (open) {
+      closeDropdown();
+      inputRef.current?.blur();
+    } else {
+      openDropdown();
+      inputRef.current?.focus();
+    }
+  };
 
   const selectOption = (opt) => {
     onChange(opt);
@@ -52,8 +74,7 @@ export default function SearchableDropdown({
 
   const handleFocus = () => {
     if (disabled) return;
-    setOpen(true);
-    setQuery(value || '');
+    openDropdown();
   };
 
   const handleChange = (e) => {
@@ -76,7 +97,17 @@ export default function SearchableDropdown({
       } else {
         setQuery(value || '');
       }
-    }, 150);
+    }, 180);
+  };
+
+  const handleWrapperMouseDown = (e) => {
+    if (disabled) return;
+    if (e.target.closest('.searchable-dropdown-menu')) return;
+    if (e.target.closest('.searchable-dropdown-toggle')) return;
+    if (open) return;
+    e.preventDefault();
+    openDropdown();
+    inputRef.current?.focus();
   };
 
   const displayValue = open ? query : (value || '');
@@ -85,8 +116,10 @@ export default function SearchableDropdown({
     <div
       ref={wrapperRef}
       className={`searchable-dropdown ${open ? 'is-open' : ''} ${disabled ? 'is-disabled' : ''} ${className}`.trim()}
+      onMouseDown={handleWrapperMouseDown}
     >
       <input
+        ref={inputRef}
         type="text"
         className="searchable-dropdown-input"
         placeholder={placeholder}
@@ -99,8 +132,19 @@ export default function SearchableDropdown({
         autoComplete="off"
         aria-expanded={open}
         aria-haspopup="listbox"
+        readOnly={disabled}
       />
-      <FiChevronDown className="searchable-dropdown-chevron" aria-hidden />
+      <button
+        type="button"
+        className="searchable-dropdown-toggle"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={toggleDropdown}
+        disabled={disabled}
+        tabIndex={-1}
+        aria-label="Toggle options"
+      >
+        <FiChevronDown className="searchable-dropdown-chevron" aria-hidden />
+      </button>
 
       {open && !disabled && (
         <ul className="searchable-dropdown-menu" role="listbox">

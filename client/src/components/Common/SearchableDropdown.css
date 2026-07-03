@@ -1,11 +1,12 @@
 .searchable-dropdown {
   position: relative;
   width: 100%;
+  cursor: pointer;
 }
 
 .searchable-dropdown-input {
   width: 100%;
-  padding: 8px 32px 8px 10px;
+  padding: 8px 36px 8px 10px;
   font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
@@ -13,6 +14,7 @@
   border: 1px solid var(--border-color);
   border-radius: 6px;
   outline: none;
+  cursor: pointer;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
@@ -27,28 +29,53 @@
 }
 
 .searchable-dropdown-chevron {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
   pointer-events: none;
   color: var(--text-muted);
   font-size: 14px;
   transition: transform 0.2s;
 }
 
+.searchable-dropdown-toggle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.searchable-dropdown-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .searchable-dropdown.is-open .searchable-dropdown-chevron {
-  transform: translateY(-50%) rotate(180deg);
+  transform: rotate(180deg);
+}
+
+.searchable-dropdown.is-open {
+  z-index: 200;
+}
+
+.searchable-dropdown.is-disabled {
+  cursor: not-allowed;
 }
 
 .searchable-dropdown.is-disabled .searchable-dropdown-input {
-  opacity: 0.55;
+  opacity: 0.7;
   cursor: not-allowed;
 }
 
 .searchable-dropdown-menu {
   position: absolute;
-  z-index: 50;
+  z-index: 1000;
   top: calc(100% + 4px);
   left: 0;
   right: 0;
@@ -82,6 +109,12 @@
 
 .searchable-dropdown-empty,
 .searchable-dropdown-custom {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.searchable-dropdown-empty:hover {
+  background: transparent;
   color: var(--text-muted);
 }
 

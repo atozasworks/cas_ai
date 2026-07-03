@@ -164,7 +164,16 @@ export default function VehicleSelector() {
   };
 
   const typeLabel = VEHICLE_TYPE_LABEL_BY_VALUE[newVehicle.type] || '';
-  const plateReady = Boolean(newVehicle.type && newVehicle.make && newVehicle.model);
+
+  const makeHint = !newVehicle.type ? 'Select Vehicle Type first' : 'No makes found';
+  const modelHint = !newVehicle.make ? 'Select Make first' : 'No models found';
+  const plateHint = !newVehicle.type
+    ? 'Select Vehicle Type first'
+    : !newVehicle.make
+      ? 'Select Make first'
+      : !newVehicle.model
+        ? 'Select Model first'
+        : 'Type a new plate number (e.g. KA01AB1234)';
 
   return (
     <div style={styles.container}>
@@ -190,8 +199,8 @@ export default function VehicleSelector() {
             value={newVehicle.make}
             onChange={handleMakeChange}
             placeholder="Select Make"
-            disabled={!newVehicle.type}
             required
+            emptyMessage={makeHint}
           />
 
           <SearchableDropdown
@@ -199,8 +208,8 @@ export default function VehicleSelector() {
             value={newVehicle.model}
             onChange={handleModelChange}
             placeholder="Select Model"
-            disabled={!newVehicle.make}
             required
+            emptyMessage={modelHint}
           />
 
           <SearchableDropdown
@@ -208,10 +217,9 @@ export default function VehicleSelector() {
             value={newVehicle.plateNumber}
             onChange={(plateNumber) => setNewVehicle({ ...newVehicle, plateNumber })}
             placeholder="Select or type Plate Number"
-            disabled={!plateReady}
             required
             allowCustom
-            emptyMessage="Type a new plate number (e.g. KA01AB1234)"
+            emptyMessage={plateHint}
           />
 
           <input
