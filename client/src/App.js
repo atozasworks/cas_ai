@@ -14,6 +14,7 @@ import SettingsPage from './components/Dashboard/SettingsPage';
 import EmergencyOverlay from './components/Emergency/EmergencyOverlay';
 import VehicleNearbyPopup from './components/Dashboard/VehicleNearbyPopup';
 import MobileTrackScreen from './components/Mobile/MobileTrackScreen';
+import PwaInstallBanner from './components/Common/PwaInstallBanner';
 import { useIsMobile } from './hooks/useIsMobile';
 
 function PrivateRoute({ children }) {
@@ -105,6 +106,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <SocketProvider>
+          <PwaInstallBanner />
           <AppRoutes />
           <Toaster
             position="top-right"
