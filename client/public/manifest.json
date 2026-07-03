@@ -1,12 +1,12 @@
 {
-  "short_name": "CAS",
-  "name": "Collision Avoidance System",
-  "description": "AI-Enhanced Real-Time Collision Avoidance & GPS Safety",
+  "short_name": "UCASAAPP",
+  "name": "UCASAAPP",
+  "description": "Universal Collision Avoidance System Advisory App",
   "icons": [
     {
-      "src": "favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "images/ucasapp.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any"
     },
     {
@@ -32,7 +32,7 @@
   "scope": ".",
   "display": "standalone",
   "theme_color": "#0f172a",
-  "background_color": "#0f172a",
+  "background_color": "#ffffff",
   "orientation": "any",
   "categories": ["navigation", "utilities", "productivity"]
 }
