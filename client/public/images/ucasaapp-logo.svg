@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 44" fill="none">
+  <text x="0" y="9" fill="#64748b" font-family="Segoe UI, Arial, sans-serif" font-size="5.5" font-weight="500">The Ultimate Care App Service</text>
+  <text x="0" y="30" fill="#2563eb" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="800" letter-spacing="-0.3">UCASAAPP</text>
+  <circle cx="118" cy="22" r="13" stroke="#3b82f6" stroke-width="2.2" fill="#fff"/>
+  <circle cx="118" cy="22" r="7.5" fill="#22c55e"/>
+  <circle cx="118" cy="22" r="4" fill="#16a34a" opacity="0.45"/>
+</svg>

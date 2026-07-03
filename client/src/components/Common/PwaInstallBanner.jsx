@@ -4,7 +4,7 @@ import './PwaInstallBanner.css';
 
 const DISMISS_KEY = 'cas_pwa_install_dismissed';
 const DISMISS_DAYS = 7;
-const APP_ICON = `${process.env.PUBLIC_URL || ''}/icons/icon-192.png`;
+const APP_LOGO = `${process.env.PUBLIC_URL || ''}/images/ucasapp.png`;
 
 function isStandalone() {
   return (
@@ -88,11 +88,9 @@ export default function PwaInstallBanner() {
       <div className="pwa-install-banner__card">
         <div className="pwa-install-banner__logo-wrap">
           <img
-            src={APP_ICON}
-            alt=""
+            src={APP_LOGO}
+            alt="UCASAAPP"
             className="pwa-install-banner__logo"
-            width={48}
-            height={48}
           />
         </div>
 
