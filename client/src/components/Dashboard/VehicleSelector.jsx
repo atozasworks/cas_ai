@@ -1,27 +1,128 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { vehicleAPI } from '../../services/api';
 import { useSocket } from '../../context/SocketContext';
 import { FiTruck, FiPlay, FiSquare, FiPlus, FiTrash2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import SearchableDropdown from '../Common/SearchableDropdown';
+import {
+  VEHICLE_TYPE_LABELS,
+  VEHICLE_TYPE_VALUE_BY_LABEL,
+  VEHICLE_TYPE_LABEL_BY_VALUE,
+  getMakesForType,
+  getModelsForTypeAndMake,
+} from '../../data/vehicleCatalog';
 import './VehicleSelector.css';
+
+const EMPTY_VEHICLE = { plateNumber: '', type: '', make: '', model: '', phone: '' };
+
+const norm = (value) => (value || '').trim().toLowerCase();
+
+function mergeRegisteredVehicles(owned = [], map = []) {
+  const seen = new Set();
+  const merged = [];
+
+  [...owned, ...map].forEach((vehicle) => {
+    const key = vehicle._id || vehicle.id || vehicle.plateNumber;
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    merged.push(vehicle);
+  });
+
+  return merged;
+}
 
 export default function VehicleSelector() {
   const [vehicles, setVehicles] = useState([]);
+  const [mapVehicles, setMapVehicles] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
-  const [newVehicle, setNewVehicle] = useState({ plateNumber: '', type: 'car', make: '', model: '', phone: '' });
+  const [newVehicle, setNewVehicle] = useState(EMPTY_VEHICLE);
   const { activeVehicleId, startTracking, stopTracking } = useSocket();
 
-  useEffect(() => {
-    loadVehicles();
-  }, []);
-
-  const loadVehicles = async () => {
+  const loadVehicles = useCallback(async () => {
     try {
       const data = await vehicleAPI.getAll();
       setVehicles(data.vehicles || []);
     } catch {
       /* ignore */
     }
+  }, []);
+
+  const loadMapVehicles = useCallback(async () => {
+    try {
+      const data = await vehicleAPI.getAllForMap();
+      setMapVehicles(data.vehicles || []);
+    } catch {
+      setMapVehicles([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadVehicles();
+    loadMapVehicles();
+  }, [loadVehicles, loadMapVehicles]);
+
+  useEffect(() => {
+    if (showAdd) {
+      loadVehicles();
+      loadMapVehicles();
+    }
+  }, [showAdd, loadVehicles, loadMapVehicles]);
+
+  const registeredVehicles = useMemo(
+    () => mergeRegisteredVehicles(vehicles, mapVehicles),
+    [vehicles, mapVehicles]
+  );
+
+  const makeOptions = useMemo(
+    () => getMakesForType(newVehicle.type),
+    [newVehicle.type]
+  );
+
+  const modelOptions = useMemo(
+    () => getModelsForTypeAndMake(newVehicle.type, newVehicle.make),
+    [newVehicle.type, newVehicle.make]
+  );
+
+  const matchingPlates = useMemo(() => {
+    if (!newVehicle.type || !newVehicle.make || !newVehicle.model) return [];
+
+    return [...new Set(
+      registeredVehicles
+        .filter((v) =>
+          norm(v.type) === norm(newVehicle.type)
+          && norm(v.make) === norm(newVehicle.make)
+          && norm(v.model) === norm(newVehicle.model)
+        )
+        .map((v) => v.plateNumber)
+        .filter(Boolean)
+    )].sort();
+  }, [registeredVehicles, newVehicle.type, newVehicle.make, newVehicle.model]);
+
+  const handleTypeChange = (label) => {
+    setNewVehicle({
+      ...newVehicle,
+      type: VEHICLE_TYPE_VALUE_BY_LABEL[label] || '',
+      make: '',
+      model: '',
+      plateNumber: '',
+    });
+  };
+
+  const handleMakeChange = (make) => {
+    setNewVehicle({
+      ...newVehicle,
+      make,
+      model: '',
+      plateNumber: '',
+    });
+  };
+
+  const handleModelChange = (model) => {
+    setNewVehicle({
+      ...newVehicle,
+      model,
+      plateNumber: '',
+    });
   };
 
   const handleAdd = async (e) => {
@@ -29,9 +130,10 @@ export default function VehicleSelector() {
     try {
       await vehicleAPI.create(newVehicle);
       toast.success('Vehicle added');
-      setNewVehicle({ plateNumber: '', type: 'car', make: '', model: '', phone: '' });
+      setNewVehicle(EMPTY_VEHICLE);
       setShowAdd(false);
       loadVehicles();
+      loadMapVehicles();
     } catch (err) {
       toast.error(err?.message || 'Failed to add vehicle');
     }
@@ -44,10 +146,14 @@ export default function VehicleSelector() {
       toast.success('Vehicle deleted');
       if (activeVehicleId === id) stopTracking();
       loadVehicles();
+      loadMapVehicles();
     } catch (err) {
       toast.error(err?.message || 'Failed to delete vehicle');
     }
   };
+
+  const typeLabel = VEHICLE_TYPE_LABEL_BY_VALUE[newVehicle.type] || '';
+  const plateReady = Boolean(newVehicle.type && newVehicle.make && newVehicle.model);
 
   return (
     <div style={styles.container}>
@@ -60,32 +166,42 @@ export default function VehicleSelector() {
 
       {showAdd && (
         <form onSubmit={handleAdd} className="vehicle-add-form" style={styles.form}>
-          <input
-            placeholder="Plate Number"
-            value={newVehicle.plateNumber}
-            onChange={(e) => setNewVehicle({ ...newVehicle, plateNumber: e.target.value })}
+          <SearchableDropdown
+            options={VEHICLE_TYPE_LABELS}
+            value={typeLabel}
+            onChange={handleTypeChange}
+            placeholder="Select Vehicle Type"
             required
-            style={styles.input}
           />
-          <select
-            value={newVehicle.type}
-            onChange={(e) => setNewVehicle({ ...newVehicle, type: e.target.value })}
-            style={styles.input}
-          >
-            <option value="car">Car</option>
-            <option value="truck">Truck</option>
-            <option value="motorcycle">Motorcycle</option>
-            <option value="bus">Bus</option>
-            <option value="bicycle">Bicycle</option>
-          </select>
-          <div className="vehicle-make-model-row" style={{ display: 'flex', gap: 8 }}>
-            <input placeholder="Make" value={newVehicle.make}
-              onChange={(e) => setNewVehicle({ ...newVehicle, make: e.target.value })}
-              style={{ ...styles.input, flex: 1 }} />
-            <input placeholder="Model" value={newVehicle.model}
-              onChange={(e) => setNewVehicle({ ...newVehicle, model: e.target.value })}
-              style={{ ...styles.input, flex: 1 }} />
-          </div>
+
+          <SearchableDropdown
+            options={makeOptions}
+            value={newVehicle.make}
+            onChange={handleMakeChange}
+            placeholder="Select Make"
+            disabled={!newVehicle.type}
+            required
+          />
+
+          <SearchableDropdown
+            options={modelOptions}
+            value={newVehicle.model}
+            onChange={handleModelChange}
+            placeholder="Select Model"
+            disabled={!newVehicle.make}
+            required
+          />
+
+          <SearchableDropdown
+            options={matchingPlates}
+            value={newVehicle.plateNumber}
+            onChange={(plateNumber) => setNewVehicle({ ...newVehicle, plateNumber })}
+            placeholder="Select Plate Number"
+            disabled={!plateReady}
+            required
+            emptyMessage="No registered plate numbers found."
+          />
+
           <input
             type="tel"
             placeholder="Phone Number"

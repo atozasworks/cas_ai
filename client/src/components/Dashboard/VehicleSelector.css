@@ -34,3 +34,18 @@
 [data-theme="light"] .vehicle-add-form select option {
   color: #0f172a;
 }
+
+.vehicle-add-form .searchable-dropdown {
+  width: 100%;
+}
+
+@media (max-width: 480px) {
+  .vehicle-add-form {
+    padding: 10px;
+    gap: 6px;
+  }
+
+  .vehicle-add-form .searchable-dropdown-input {
+    font-size: 16px;
+  }
+}

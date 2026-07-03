@@ -1,0 +1,103 @@
+.searchable-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.searchable-dropdown-input {
+  width: 100%;
+  padding: 8px 32px 8px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.searchable-dropdown-input::placeholder {
+  color: #cbd5e1;
+  opacity: 1;
+}
+
+.searchable-dropdown-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.searchable-dropdown-chevron {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  transition: transform 0.2s;
+}
+
+.searchable-dropdown.is-open .searchable-dropdown-chevron {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.searchable-dropdown.is-disabled .searchable-dropdown-input {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.searchable-dropdown-menu {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  animation: fadeSlideDown 0.15s ease-out;
+}
+
+.searchable-dropdown-menu li {
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.searchable-dropdown-menu li:hover,
+.searchable-dropdown-menu li.is-selected {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+}
+
+.searchable-dropdown-empty,
+.searchable-dropdown-custom {
+  color: var(--text-muted);
+}
+
+.searchable-dropdown-custom {
+  color: #3b82f6;
+}
+
+[data-theme="light"] .searchable-dropdown-input {
+  background: #fff;
+  color: #0f172a;
+}
+
+[data-theme="light"] .searchable-dropdown-input::placeholder {
+  color: #475569;
+}
+
+[data-theme="light"] .searchable-dropdown-menu {
+  background: #fff;
+}
