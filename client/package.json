@@ -17,6 +17,7 @@
   },
   "scripts": {
     "prestart": "node scripts/free-dev-port.js",
+    "prebuild": "node scripts/generate-pwa-icons.js",
     "start": "cross-env PORT=7760 react-scripts start",
     "build": "react-scripts build"
   },
@@ -37,6 +38,12 @@
     "autoprefixer": "^10.5.2",
     "cross-env": "^10.1.0",
     "postcss": "^8.5.16",
-    "tailwindcss": "^3.4.19"
+    "sharp": "^0.35.3",
+    "tailwindcss": "^3.4.19",
+    "workbox-core": "^7.4.1",
+    "workbox-expiration": "^7.4.1",
+    "workbox-precaching": "^7.4.1",
+    "workbox-routing": "^7.4.1",
+    "workbox-strategies": "^7.4.1"
   }
 }
