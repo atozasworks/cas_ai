@@ -142,3 +142,17 @@ export function getModelsForTypeAndMake(type, make) {
   if (!type || !make) return [];
   return VEHICLE_MODELS_BY_TYPE_AND_MAKE[type]?.[make] || [];
 }
+
+/** Example plates shown when no registered vehicle matches the selected combination */
+export const SAMPLE_PLATE_NUMBERS = [
+  'KA01AB1234',
+  'KA19MC5678',
+  'KA21XY9090',
+  'KA05MN4321',
+  'KA09HT8765',
+];
+
+export function getPlateOptions(registeredPlates = []) {
+  const unique = [...new Set([...registeredPlates, ...SAMPLE_PLATE_NUMBERS].filter(Boolean))];
+  return unique.sort();
+}

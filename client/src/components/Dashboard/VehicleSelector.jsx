@@ -10,12 +10,21 @@ import {
   VEHICLE_TYPE_LABEL_BY_VALUE,
   getMakesForType,
   getModelsForTypeAndMake,
+  getPlateOptions,
 } from '../../data/vehicleCatalog';
 import './VehicleSelector.css';
 
 const EMPTY_VEHICLE = { plateNumber: '', type: '', make: '', model: '', phone: '' };
 
-const norm = (value) => (value || '').trim().toLowerCase();
+const norm = (value) => (value || '').trim().toLowerCase().replace(/[\s_-]+/g, '');
+
+function fieldMatches(stored, selected) {
+  const a = norm(stored);
+  const b = norm(selected);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  return a.includes(b) || b.includes(a);
+}
 
 function mergeRegisteredVehicles(owned = [], map = []) {
   const seen = new Set();
@@ -86,16 +95,18 @@ export default function VehicleSelector() {
   const matchingPlates = useMemo(() => {
     if (!newVehicle.type || !newVehicle.make || !newVehicle.model) return [];
 
-    return [...new Set(
+    const registered = [...new Set(
       registeredVehicles
         .filter((v) =>
-          norm(v.type) === norm(newVehicle.type)
-          && norm(v.make) === norm(newVehicle.make)
-          && norm(v.model) === norm(newVehicle.model)
+          fieldMatches(v.type, newVehicle.type)
+          && fieldMatches(v.make, newVehicle.make)
+          && fieldMatches(v.model, newVehicle.model)
         )
         .map((v) => v.plateNumber)
         .filter(Boolean)
-    )].sort();
+    )];
+
+    return getPlateOptions(registered);
   }, [registeredVehicles, newVehicle.type, newVehicle.make, newVehicle.model]);
 
   const handleTypeChange = (label) => {
@@ -196,10 +207,11 @@ export default function VehicleSelector() {
             options={matchingPlates}
             value={newVehicle.plateNumber}
             onChange={(plateNumber) => setNewVehicle({ ...newVehicle, plateNumber })}
-            placeholder="Select Plate Number"
+            placeholder="Select or type Plate Number"
             disabled={!plateReady}
             required
-            emptyMessage="No registered plate numbers found."
+            allowCustom
+            emptyMessage="Type a new plate number (e.g. KA01AB1234)"
           />
 
           <input
