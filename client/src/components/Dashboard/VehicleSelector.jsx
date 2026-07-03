@@ -3,6 +3,7 @@ import { vehicleAPI } from '../../services/api';
 import { useSocket } from '../../context/SocketContext';
 import { FiTruck, FiPlay, FiSquare, FiPlus, FiTrash2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import './VehicleSelector.css';
 
 export default function VehicleSelector() {
   const [vehicles, setVehicles] = useState([]);
@@ -58,7 +59,7 @@ export default function VehicleSelector() {
       </div>
 
       {showAdd && (
-        <form onSubmit={handleAdd} style={styles.form}>
+        <form onSubmit={handleAdd} className="vehicle-add-form" style={styles.form}>
           <input
             placeholder="Plate Number"
             value={newVehicle.plateNumber}

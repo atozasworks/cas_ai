@@ -1,0 +1,36 @@
+.vehicle-add-form input,
+.vehicle-add-form select {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  font-weight: 500;
+}
+
+.vehicle-add-form input::placeholder {
+  color: #cbd5e1;
+  opacity: 1;
+  font-weight: 500;
+}
+
+.vehicle-add-form select {
+  color: var(--text-primary);
+}
+
+.vehicle-add-form select option {
+  color: #0f172a;
+  background: #fff;
+}
+
+[data-theme="light"] .vehicle-add-form input,
+[data-theme="light"] .vehicle-add-form select {
+  background: #fff;
+  color: #0f172a;
+}
+
+[data-theme="light"] .vehicle-add-form input::placeholder {
+  color: #475569;
+}
+
+[data-theme="light"] .vehicle-add-form select option {
+  color: #0f172a;
+}
