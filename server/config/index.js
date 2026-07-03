@@ -17,6 +17,7 @@ const localDevOrigins = [
   'http://127.0.0.1:3000',
   'http://127.0.0.1:5000',
   'http://localhost:7760',
+  'http://127.0.0.1:7760',
 ];
 const configuredOrigins = parseOrigins(process.env.CORS_ORIGINS || process.env.CLIENT_URL);
 const allowedOrigins = Array.from(

@@ -443,6 +443,28 @@
   background: rgba(148, 163, 184, 0.08);
 }
 
+.auth-page__origin-warn {
+  margin-top: 20px;
+  padding: 12px 14px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #fde68a;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  border-radius: 12px;
+}
+
+.auth-page__origin-warn a {
+  color: #93c5fd;
+  font-weight: 600;
+}
+
+.auth-page__origin-warn code {
+  font-size: 0.75rem;
+  color: #fef3c7;
+  word-break: break-all;
+}
+
 /* ----- Responsive ----- */
 @media (max-width: 480px) {
   .auth-page {

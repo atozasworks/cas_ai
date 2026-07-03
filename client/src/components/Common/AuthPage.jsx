@@ -8,6 +8,19 @@ import './AuthPage.css';
 // Sign-up steps: 'details' (google + name, email, phone) -> 'otp' -> done
 const SIGNUP_STEPS = { DETAILS: 'details', OTP: 'otp' };
 
+const GOOGLE_ALLOWED_ORIGINS = new Set([
+  'http://localhost:3000',
+  'http://localhost:7760',
+  'https://casai.testatozas.in',
+  'https://www.casai.testatozas.in',
+]);
+
+const DEV_GOOGLE_ORIGIN = 'http://localhost:7760';
+
+function isGoogleOriginAllowed() {
+  return GOOGLE_ALLOWED_ORIGINS.has(window.location.origin);
+}
+
 /* ── Load Google Identity Services script once ── */
 let gsiLoadPromise = null;
 let gsiInitializedClientId = '';
@@ -56,6 +69,15 @@ export default function AuthPage({ initialMode = 'login' }) {
     setForm({ name: '', email: '', phone: '', otp: '' });
   }, [initialMode]);
 
+  /* Dev: redirect IP / 127.0.0.1 / wrong port → localhost:7760 (Google Console origin) */
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
+    if (window.location.origin === DEV_GOOGLE_ORIGIN) return;
+    if (isGoogleOriginAllowed()) return;
+    const target = `${DEV_GOOGLE_ORIGIN}${window.location.pathname}${window.location.search}${window.location.hash}`;
+    window.location.replace(target);
+  }, []);
+
   /* ── Google callback ── */
   const handleGoogleResponse = useCallback(async (response) => {
     if (!response?.credential) { toast.error('Google sign-in failed'); return; }
@@ -80,7 +102,7 @@ export default function AuthPage({ initialMode = 'login' }) {
 
   /* ── Initialize GIS and render Google button ── */
   useEffect(() => {
-    if (!googleClientId) return;
+    if (!googleClientId || !isGoogleOriginAllowed()) return;
     // Show on login page OR signup details step
     const showOnLogin = isLogin;
     const showOnSignup = !isLogin && signupStep === SIGNUP_STEPS.DETAILS;
@@ -94,6 +116,7 @@ export default function AuthPage({ initialMode = 'login' }) {
           client_id: googleClientId,
           callback: handleGoogleResponse,
           ux_mode: 'popup',
+          use_fedcm_for_prompt: false,
         });
         gsiInitializedClientId = googleClientId;
       }
@@ -389,6 +412,12 @@ export default function AuthPage({ initialMode = 'login' }) {
         </div>
 
         {isLogin ? renderLogin() : renderSignup()}
+
+        {process.env.NODE_ENV === 'development' && !isGoogleOriginAllowed() && (
+          <p className="auth-page__origin-warn" role="alert">
+            Redirecting to <strong>{DEV_GOOGLE_ORIGIN}/login</strong> for Google Sign-In…
+          </p>
+        )}
       </div>
     </div>
   );
