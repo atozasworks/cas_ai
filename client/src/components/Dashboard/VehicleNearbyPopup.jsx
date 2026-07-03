@@ -320,7 +320,7 @@ export default function VehicleNearbyPopup() {
             <div className="vehicle-nearby-popup-emergency-service">
               <span className="vehicle-nearby-popup-emergency-emoji">🚑</span>
               <span>Ambulance</span>
-              <span className="vehicle-nearby-popup-emergency-number">9591673693</span>
+              <span className="vehicle-nearby-popup-emergency-number">108</span>
             </div>
             <div className="vehicle-nearby-popup-emergency-actions">
               <button type="button" className="vehicle-nearby-popup-emergency-action-btn" onClick={() => handleEmergencyDial('9591673693')}>Call</button>
@@ -332,7 +332,7 @@ export default function VehicleNearbyPopup() {
             <div className="vehicle-nearby-popup-emergency-service">
               <span className="vehicle-nearby-popup-emergency-emoji">🏥</span>
               <span>Hospital</span>
-              <span className="vehicle-nearby-popup-emergency-number">7619238226</span>
+              <span className="vehicle-nearby-popup-emergency-number">112</span>
             </div>
             <div className="vehicle-nearby-popup-emergency-actions">
               <button type="button" className="vehicle-nearby-popup-emergency-action-btn" onClick={() => handleEmergencyDial('7619238226')}>Call</button>
@@ -344,7 +344,7 @@ export default function VehicleNearbyPopup() {
             <div className="vehicle-nearby-popup-emergency-service">
               <span className="vehicle-nearby-popup-emergency-emoji">🚓</span>
               <span>Police</span>
-              <span className="vehicle-nearby-popup-emergency-number">9449257528</span>
+              <span className="vehicle-nearby-popup-emergency-number">100</span>
             </div>
             <div className="vehicle-nearby-popup-emergency-actions">
               <button type="button" className="vehicle-nearby-popup-emergency-action-btn" onClick={() => handleEmergencyDial('9449257528')}>Call</button>

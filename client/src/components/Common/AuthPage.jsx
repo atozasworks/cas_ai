@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { FiShield, FiMail, FiLock, FiUser, FiPhone, FiCheckCircle } from 'react-icons/fi';
+import { FiShield, FiMail, FiLock, FiUser, FiPhone } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { getRuntimeConfig, loadRuntimeConfig } from '../../services/runtimeConfig';
+import './AuthPage.css';
 
 // Sign-up steps: 'details' (google + name, email, phone) -> 'otp' -> done
 const SIGNUP_STEPS = { DETAILS: 'details', OTP: 'otp' };
@@ -24,6 +25,15 @@ function loadGsiScript() {
   });
   return gsiLoadPromise;
 }
+
+const GoogleIcon = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+  </svg>
+);
 
 export default function AuthPage({ initialMode = 'login' }) {
   const [isLogin, setIsLogin] = useState(initialMode !== 'register');
@@ -211,41 +221,50 @@ export default function AuthPage({ initialMode = 'login' }) {
 
   /* ───── RENDER: LOGIN ───── */
   const renderLogin = () => (
-    <div style={styles.form}>
-      <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={styles.inputGroup}>
-          <FiMail style={styles.inputIcon} />
-          <input type="email" placeholder="Email Address" value={form.email}
-            onChange={update('email')} required style={styles.input} />
+    <div className="auth-page__form">
+      <form onSubmit={handleLogin} className="auth-page__form-inner">
+        <div className="auth-page__input-group">
+          <FiMail className="auth-page__input-icon" aria-hidden="true" />
+          <input
+            type="email"
+            className="auth-page__input"
+            placeholder="Email Address"
+            value={form.email}
+            onChange={update('email')}
+            required
+          />
         </div>
         {otpSent && (
-          <div style={styles.inputGroup}>
-            <FiLock style={styles.inputIcon} />
-            <input type="text" placeholder="Enter OTP" value={form.otp}
-              onChange={update('otp')} required inputMode="numeric" maxLength={4} style={styles.input} />
+          <div className="auth-page__input-group">
+            <FiLock className="auth-page__input-icon" aria-hidden="true" />
+            <input
+              type="text"
+              className="auth-page__input"
+              placeholder="Enter OTP"
+              value={form.otp}
+              onChange={update('otp')}
+              required
+              inputMode="numeric"
+              maxLength={4}
+            />
           </div>
         )}
-        <button type="submit" className="btn btn-primary" style={styles.submitBtn} disabled={submitting}>
+        <button type="submit" className="auth-page__submit" disabled={submitting}>
           {submitting ? 'Please wait...' : otpSent ? 'Sign In' : 'Send OTP'}
         </button>
       </form>
 
-      <div style={styles.divider}>
-        <span style={styles.dividerLine} />
-        <span style={styles.dividerText}>or</span>
-        <span style={styles.dividerLine} />
+      <div className="auth-page__divider">
+        <span className="auth-page__divider-line" />
+        <span className="auth-page__divider-text">or</span>
+        <span className="auth-page__divider-line" />
       </div>
 
       {googleClientId ? (
-        <div ref={loginGoogleBtnRef} style={styles.googleBtnContainer} />
+        <div ref={loginGoogleBtnRef} className="auth-page__google-wrap" />
       ) : (
-        <button type="button" disabled style={{ ...styles.googleBtn, opacity: 0.5, cursor: 'not-allowed' }}>
-          <svg viewBox="0 0 24 24" width="20" height="20" style={{ marginRight: 10, flexShrink: 0 }}>
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-          </svg>
+        <button type="button" disabled className="auth-page__google-fallback">
+          <GoogleIcon />
           Google not configured
         </button>
       )}
@@ -254,44 +273,57 @@ export default function AuthPage({ initialMode = 'login' }) {
 
   /* ───── RENDER: SIGNUP DETAILS (Google + Name, Email, Phone — all visible) ───── */
   const renderSignupDetails = () => (
-    <div style={styles.form}>
+    <div className="auth-page__form">
       {googleClientId ? (
-        <div ref={googleBtnRef} style={styles.googleBtnContainer} />
+        <div ref={googleBtnRef} className="auth-page__google-wrap" />
       ) : (
-        <button type="button" disabled style={{ ...styles.googleBtn, opacity: 0.5, cursor: 'not-allowed' }}>
-          <svg viewBox="0 0 24 24" width="20" height="20" style={{ marginRight: 10, flexShrink: 0 }}>
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-          </svg>
+        <button type="button" disabled className="auth-page__google-fallback">
+          <GoogleIcon />
           Google not configured
         </button>
       )}
 
-      <div style={styles.divider}>
-        <span style={styles.dividerLine} />
-        <span style={styles.dividerText}>or sign up with email</span>
-        <span style={styles.dividerLine} />
+      <div className="auth-page__divider">
+        <span className="auth-page__divider-line" />
+        <span className="auth-page__divider-text">or sign up with email</span>
+        <span className="auth-page__divider-line" />
       </div>
 
-      <form onSubmit={handleDetailsSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={styles.inputGroup}>
-          <FiUser style={styles.inputIcon} />
-          <input type="text" placeholder="Full Name *" value={form.name}
-            onChange={update('name')} required style={styles.input} />
+      <form onSubmit={handleDetailsSubmit} className="auth-page__form-inner">
+        <div className="auth-page__input-group">
+          <FiUser className="auth-page__input-icon" aria-hidden="true" />
+          <input
+            type="text"
+            className="auth-page__input"
+            placeholder="Full Name *"
+            value={form.name}
+            onChange={update('name')}
+            required
+          />
         </div>
-        <div style={styles.inputGroup}>
-          <FiMail style={styles.inputIcon} />
-          <input type="email" placeholder="Email Address *" value={form.email}
-            onChange={update('email')} required style={styles.input} />
+        <div className="auth-page__input-group">
+          <FiMail className="auth-page__input-icon" aria-hidden="true" />
+          <input
+            type="email"
+            className="auth-page__input"
+            placeholder="Email Address *"
+            value={form.email}
+            onChange={update('email')}
+            required
+          />
         </div>
-        <div style={styles.inputGroup}>
-          <FiPhone style={styles.inputIcon} />
-          <input type="tel" placeholder="Phone Number *" value={form.phone}
-            onChange={update('phone')} required style={styles.input} />
+        <div className="auth-page__input-group">
+          <FiPhone className="auth-page__input-icon" aria-hidden="true" />
+          <input
+            type="tel"
+            className="auth-page__input"
+            placeholder="Phone Number *"
+            value={form.phone}
+            onChange={update('phone')}
+            required
+          />
         </div>
-        <button type="submit" className="btn btn-primary" style={styles.submitBtn} disabled={submitting}>
+        <button type="submit" className="auth-page__submit" disabled={submitting}>
           {submitting ? 'Sending OTP...' : 'Continue — Send OTP'}
         </button>
       </form>
@@ -300,21 +332,31 @@ export default function AuthPage({ initialMode = 'login' }) {
 
   /* ───── RENDER: SIGNUP OTP (verify & create account) ───── */
   const renderSignupOtp = () => (
-    <form onSubmit={handleVerifyAndCreate} style={styles.form}>
-      <div style={styles.verifiedBadge}>
-        <FiUser style={{ color: '#3b82f6', fontSize: 16, marginRight: 6 }} />
+    <form onSubmit={handleVerifyAndCreate} className="auth-page__form">
+      <div className="auth-page__verified-badge">
+        <FiUser aria-hidden="true" />
         <span>{form.name}</span>
       </div>
-      <p style={styles.infoText}>A 4-digit OTP has been sent to <strong>{form.email}</strong></p>
-      <div style={styles.inputGroup}>
-        <FiLock style={styles.inputIcon} />
-        <input type="text" placeholder="Enter 4-digit OTP" value={form.otp}
-          onChange={update('otp')} required inputMode="numeric" maxLength={4} style={styles.input} />
+      <p className="auth-page__info-text">
+        A 4-digit OTP has been sent to <strong>{form.email}</strong>
+      </p>
+      <div className="auth-page__input-group">
+        <FiLock className="auth-page__input-icon" aria-hidden="true" />
+        <input
+          type="text"
+          className="auth-page__input"
+          placeholder="Enter 4-digit OTP"
+          value={form.otp}
+          onChange={update('otp')}
+          required
+          inputMode="numeric"
+          maxLength={4}
+        />
       </div>
-      <button type="submit" className="btn btn-primary" style={styles.submitBtn} disabled={submitting}>
+      <button type="submit" className="auth-page__submit" disabled={submitting}>
         {submitting ? 'Creating Account...' : 'Verify & Create Account'}
       </button>
-      <button type="button" onClick={() => setSignupStep(SIGNUP_STEPS.DETAILS)} style={styles.backBtn}>
+      <button type="button" onClick={() => setSignupStep(SIGNUP_STEPS.DETAILS)} className="auth-page__back-btn">
         ← Back to details
       </button>
     </form>
@@ -330,12 +372,20 @@ export default function AuthPage({ initialMode = 'login' }) {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <div style={styles.header}>
-          <FiShield style={{ fontSize: 48, color: '#3b82f6' }} />
-          <h1 style={styles.title}>Collision Avoidance System</h1>
-          <p style={styles.subtitle}>AI-Enhanced Real-Time Safety</p>
+    <div className="auth-page">
+      <div className="auth-page__bg" aria-hidden="true">
+        <span className="auth-page__orb auth-page__orb--1" />
+        <span className="auth-page__orb auth-page__orb--2" />
+        <span className="auth-page__orb auth-page__orb--3" />
+      </div>
+
+      <div className="auth-page__card">
+        <div className="auth-page__header">
+          <div className="auth-page__shield">
+            <FiShield className="auth-page__shield-icon" aria-hidden="true" />
+          </div>
+          <h1 className="auth-page__title">Collision Avoidance System</h1>
+          <p className="auth-page__subtitle">AI-Enhanced Real-Time Safety</p>
         </div>
 
         {isLogin ? renderLogin() : renderSignup()}
@@ -343,158 +393,3 @@ export default function AuthPage({ initialMode = 'login' }) {
     </div>
   );
 }
-
-const styles = {
-  container: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'var(--bg-auth-gradient)',
-    padding: 20,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 420,
-    background: 'var(--bg-secondary)',
-    border: '1px solid var(--border-color)',
-    borderRadius: 16,
-    padding: 40,
-    boxShadow: 'var(--shadow-card)',
-  },
-  header: {
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 700,
-    marginTop: 12,
-    color: 'var(--text-primary)',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: 'var(--text-muted)',
-    marginTop: 4,
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 16,
-  },
-  inputGroup: {
-    position: 'relative',
-  },
-  inputIcon: {
-    position: 'absolute',
-    left: 14,
-    top: '50%',
-    transform: 'translateY(-50%)',
-    color: 'var(--text-muted)',
-    fontSize: 16,
-  },
-  input: {
-    width: '100%',
-    paddingLeft: 42,
-  },
-  submitBtn: {
-    width: '100%',
-    padding: '12px 0',
-    fontSize: 15,
-    marginTop: 8,
-  },
-  toggle: {
-    textAlign: 'center',
-    marginTop: 20,
-    fontSize: 14,
-    color: 'var(--text-muted)',
-  },
-  toggleBtn: {
-    background: 'none',
-    border: 'none',
-    color: '#3b82f6',
-    fontWeight: 600,
-    cursor: 'pointer',
-    fontSize: 14,
-  },
-  googleBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    padding: '12px 0',
-    fontSize: 15,
-    fontWeight: 600,
-    background: '#fff',
-    color: '#333',
-    border: '1px solid var(--border-color)',
-    borderRadius: 8,
-    cursor: 'pointer',
-    transition: 'background 0.2s',
-  },
-  googleBtnContainer: {
-    width: '100%',
-    display: 'flex',
-    justifyContent: 'center',
-    minHeight: 44,
-  },
-  emailOtpBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    padding: '12px 0',
-    fontSize: 15,
-    fontWeight: 600,
-    background: 'var(--bg-primary)',
-    color: 'var(--text-primary)',
-    border: '1px solid var(--border-color)',
-    borderRadius: 8,
-    cursor: 'pointer',
-    transition: 'background 0.2s',
-  },
-  divider: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-    margin: '4px 0',
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    background: 'var(--border-color)',
-  },
-  dividerText: {
-    fontSize: 13,
-    color: 'var(--text-muted)',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  backBtn: {
-    background: 'none',
-    border: 'none',
-    color: 'var(--text-muted)',
-    cursor: 'pointer',
-    fontSize: 14,
-    textAlign: 'center',
-    padding: 4,
-  },
-  infoText: {
-    fontSize: 14,
-    color: 'var(--text-muted)',
-    textAlign: 'center',
-    margin: 0,
-    lineHeight: 1.5,
-  },
-  verifiedBadge: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 14,
-    color: '#22c55e',
-    padding: '8px 12px',
-    background: 'rgba(34,197,94,0.08)',
-    borderRadius: 8,
-    fontWeight: 500,
-  },
-};
