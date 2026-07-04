@@ -1,8 +1,8 @@
 import { io } from 'socket.io-client';
 
-//const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
+const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
 //const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'https://casai.testatozas.in';
-const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'https://www.ucasaapp.com';
+//const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'https://www.ucasaapp.com';
 
 let socket = null;
 
