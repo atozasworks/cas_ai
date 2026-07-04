@@ -68,7 +68,7 @@ app.use('/api/v1', (req, res, next) => {
 
 // ───────── Serve React Build ─────────
 
-const PROD_BUILD = '/home/testatozas-casai/htdocs/www.ucasaapp.com/build';
+const PROD_BUILD = '/home/ucasaapp/htdocs/ucasaapp.com/build';
 const DEV_BUILD = path.join(__dirname, '..', 'client', 'build');
 const BUILD_PATH = process.env.BUILD_PATH || PROD_BUILD;
 
