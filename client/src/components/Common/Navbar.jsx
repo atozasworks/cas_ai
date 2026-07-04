@@ -230,7 +230,7 @@ export default function Navbar() {
   };
 
   const navItems = [
-    { to: '/', icon: <FiMap />, label: 'Dashboard' },
+    { to: '/', icon: <FiMap />, label: 'Home' },
     { to: '/analytics', icon: <FiBarChart2 />, label: 'Analytics' },
   ];
 
