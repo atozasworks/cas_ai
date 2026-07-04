@@ -14,6 +14,8 @@ const GOOGLE_ALLOWED_ORIGINS = new Set([
   'http://localhost:7760',
   'https://casai.testatozas.in',
   'https://www.casai.testatozas.in',
+  'https://ucasaapp.com',
+  'https://www.ucasaapp.com',
 ]);
 
 const DEV_GOOGLE_ORIGIN = 'http://localhost:7760';
