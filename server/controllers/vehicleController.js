@@ -8,39 +8,59 @@ exports.createVehicle = asyncHandler(async (req, res, next) => {
   }
 
   const ownerId = req.user._id;
-  const existing = await Vehicle.findOne({ plateNumber });
+  const payload = {
+    owner: ownerId,
+    plateNumber,
+    type: req.body.type,
+    make: req.body.make,
+    model: req.body.model,
+    phone: req.body.phone,
+    isActive: true,
+    isOnline: false,
+  };
+  if (req.body.year != null) payload.year = req.body.year;
+  if (req.body.color) payload.color = req.body.color;
+  if (req.body.dimensions) payload.dimensions = req.body.dimensions;
 
-  if (existing) {
-    const isOwner = String(existing.owner) === String(ownerId);
-    const isInactive = existing.isActive === false;
+  // Case-insensitive match (old rows may not be uppercase)
+  const plateRegex = new RegExp(`^${plateNumber.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
 
-    // Same owner (active or deleted) OR any inactive plate — reclaim / update
-    if (isOwner || isInactive) {
-      existing.owner = ownerId;
-      existing.type = req.body.type ?? existing.type;
-      existing.make = req.body.make ?? existing.make;
-      existing.model = req.body.model ?? existing.model;
-      existing.phone = req.body.phone ?? existing.phone;
-      existing.year = req.body.year ?? existing.year;
-      existing.color = req.body.color ?? existing.color;
-      if (req.body.dimensions) existing.dimensions = req.body.dimensions;
-      existing.isActive = true;
-      existing.isOnline = false;
-      await existing.save();
-      return res.status(200).json({ success: true, vehicle: existing });
-    }
+  const applyPayload = async (vehicle) => {
+    vehicle.owner = ownerId;
+    vehicle.plateNumber = plateNumber;
+    vehicle.type = payload.type ?? vehicle.type;
+    vehicle.make = payload.make ?? vehicle.make;
+    vehicle.model = payload.model ?? vehicle.model;
+    vehicle.phone = payload.phone ?? vehicle.phone;
+    if (payload.year != null) vehicle.year = payload.year;
+    if (payload.color) vehicle.color = payload.color;
+    if (payload.dimensions) vehicle.dimensions = payload.dimensions;
+    vehicle.isActive = true;
+    vehicle.isOnline = false;
+    await vehicle.save();
+    return vehicle;
+  };
 
-    // Active plate owned by another user
-    return next(new AppError('Vehicle with this plate number already exists', 409));
+  let vehicle = await Vehicle.findOne({ plateNumber: plateRegex });
+  if (vehicle) {
+    vehicle = await applyPayload(vehicle);
+    return res.status(200).json({ success: true, vehicle });
   }
 
-  const vehicle = await Vehicle.create({
-    ...req.body,
-    plateNumber,
-    owner: ownerId,
-  });
-
-  res.status(201).json({ success: true, vehicle });
+  try {
+    vehicle = await Vehicle.create(payload);
+    return res.status(201).json({ success: true, vehicle });
+  } catch (err) {
+    // Race / unique index — reclaim existing row instead of 409
+    if (err && err.code === 11000) {
+      vehicle = await Vehicle.findOne({ plateNumber: plateRegex });
+      if (vehicle) {
+        vehicle = await applyPayload(vehicle);
+        return res.status(200).json({ success: true, vehicle });
+      }
+    }
+    throw err;
+  }
 });
 
 exports.getMyVehicles = asyncHandler(async (req, res) => {
