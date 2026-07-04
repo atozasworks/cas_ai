@@ -29,12 +29,12 @@ export function SocketProvider({ children }) {
       setRiskData(data);
       setNearbyVehicles(data.nearbyVehicles || []);
 
-      // Fallback popup if dedicated event is missed
-      const alertMeters = 10;
+      // Fallback popup if dedicated event is missed (match server default 50m)
+      const alertMeters = 50;
       const topAssessment = data.assessments?.[0];
-      const dist = topAssessment?.components?.distance;
-      const direction = topAssessment?.components?.direction || null;
       const nearby = data.nearbyVehicles || [];
+      const dist = topAssessment?.components?.distance ?? nearby[0]?.distance;
+      const direction = topAssessment?.components?.direction || null;
 
       if (dist != null && dist <= alertMeters && nearby.length > 0) {
         let closest = nearby[0];
