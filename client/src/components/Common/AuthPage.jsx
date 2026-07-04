@@ -80,19 +80,16 @@ export default function AuthPage({ initialMode = 'login' }) {
     window.location.replace(target);
   }, []);
 
-  /* ── Google callback ── */
+  /* ── Google callback — no loading UI; go straight to dashboard ── */
   const handleGoogleResponse = useCallback(async (response) => {
     if (!response?.credential) { toast.error('Google sign-in failed'); return; }
-    setSubmitting(true);
     try {
       await googleAuth(response.credential);
-      toast.success('Signed in with Google!');
+      navigate('/', { replace: true });
     } catch (err) {
       toast.error(err?.message || 'Google sign-in failed');
-    } finally {
-      setSubmitting(false);
     }
-  }, [googleAuth]);
+  }, [googleAuth, navigate]);
 
   useEffect(() => {
     let active = true;

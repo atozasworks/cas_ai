@@ -381,15 +381,17 @@ exports.googleAuth = asyncHandler(async (req, res, next) => {
   const email = payload.email.toLowerCase();
   const googleName = payload.name || '';
 
-  let user = await User.findOne({ email });
+  // Single DB round-trip for returning users (find + lastLogin update)
+  let user = await User.findOneAndUpdate(
+    { email },
+    { $set: { lastLogin: new Date() } },
+    { new: true }
+  );
   if (user) {
-    // Existing user — log them in
-    user.lastLogin = new Date();
-    await user.save({ validateBeforeSave: false });
     return sendTokenResponse(user, 200, res);
   }
 
-  // New user — create account
+  // New user — create account, respond immediately, score row in background
   const generatedPassword = crypto.randomBytes(24).toString('hex');
   user = await User.create({
     name: googleName,
@@ -397,9 +399,10 @@ exports.googleAuth = asyncHandler(async (req, res, next) => {
     password: generatedPassword,
     phone: '',
   });
-  await DriverScore.create({ userId: user._id });
-
   sendTokenResponse(user, 201, res);
+  DriverScore.create({ userId: user._id }).catch((err) => {
+    logger.warn('DriverScore create failed after Google signup', { err: err.message, userId: user._id });
+  });
 });
 
 exports.getMe = asyncHandler(async (req, res) => {

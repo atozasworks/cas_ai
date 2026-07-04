@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { authAPI } from '../services/api';
 
 const AuthContext = createContext(null);
@@ -7,9 +7,16 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('cas_token'));
   const [loading, setLoading] = useState(true);
+  const skipNextLoadUserRef = useRef(false);
 
   const loadUser = useCallback(async () => {
     if (!token) {
+      setLoading(false);
+      return;
+    }
+    // Google auth already set user — skip redundant /me round-trip
+    if (skipNextLoadUserRef.current) {
+      skipNextLoadUserRef.current = false;
       setLoading(false);
       return;
     }
@@ -58,11 +65,9 @@ export function AuthProvider({ children }) {
     const data = await authAPI.googleAuth({ credential });
     localStorage.setItem('cas_token', data.token);
     localStorage.setItem('cas_user', JSON.stringify(data.user));
-    setToken(data.token);
+    skipNextLoadUserRef.current = true;
     setUser(data.user);
-    if (typeof sessionStorage !== 'undefined') {
-      sessionStorage.setItem('cas_show_welcome_splash', '1');
-    }
+    setToken(data.token);
     return data;
   };
 
