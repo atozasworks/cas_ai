@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { FiShield, FiMail, FiLock, FiUser, FiPhone } from 'react-icons/fi';
+import { FiShield, FiMail, FiLock, FiUser, FiPhone, FiArrowLeft } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { getRuntimeConfig, loadRuntimeConfig } from '../../services/runtimeConfig';
 import './AuthPage.css';
@@ -49,6 +50,7 @@ const GoogleIcon = () => (
 );
 
 export default function AuthPage({ initialMode = 'login' }) {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(initialMode !== 'register');
   const [form, setForm] = useState({ name: '', email: '', phone: '', otp: '' });
   const [otpSent, setOtpSent] = useState(false);
@@ -291,6 +293,11 @@ export default function AuthPage({ initialMode = 'login' }) {
           Google not configured
         </button>
       )}
+
+      <button type="button" onClick={() => navigate('/')} className="auth-page__home-btn">
+        <FiArrowLeft aria-hidden="true" />
+        Back to home
+      </button>
     </div>
   );
 
