@@ -228,7 +228,7 @@ export default function VehicleSelector() {
             value={newVehicle.phone}
             onChange={(e) => setNewVehicle({ ...newVehicle, phone: e.target.value })}
             required
-            pattern="^\+?[\d\s-]{7,15}$"
+            pattern="[0-9+\\-\\s]{7,15}"
             title="Enter a valid phone number"
             style={styles.input}
           />

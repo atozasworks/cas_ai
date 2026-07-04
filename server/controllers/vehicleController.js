@@ -2,14 +2,42 @@ const Vehicle = require('../models/Vehicle');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
 
 exports.createVehicle = asyncHandler(async (req, res, next) => {
-  const existing = await Vehicle.findOne({ plateNumber: req.body.plateNumber.toUpperCase() });
+  const plateNumber = String(req.body.plateNumber || '').trim().toUpperCase().replace(/\s+/g, '');
+  if (!plateNumber) {
+    return next(new AppError('Plate number is required', 400));
+  }
+
+  const ownerId = req.user._id;
+  const existing = await Vehicle.findOne({ plateNumber });
+
   if (existing) {
+    const isOwner = String(existing.owner) === String(ownerId);
+    const isInactive = existing.isActive === false;
+
+    // Same owner (active or deleted) OR any inactive plate — reclaim / update
+    if (isOwner || isInactive) {
+      existing.owner = ownerId;
+      existing.type = req.body.type ?? existing.type;
+      existing.make = req.body.make ?? existing.make;
+      existing.model = req.body.model ?? existing.model;
+      existing.phone = req.body.phone ?? existing.phone;
+      existing.year = req.body.year ?? existing.year;
+      existing.color = req.body.color ?? existing.color;
+      if (req.body.dimensions) existing.dimensions = req.body.dimensions;
+      existing.isActive = true;
+      existing.isOnline = false;
+      await existing.save();
+      return res.status(200).json({ success: true, vehicle: existing });
+    }
+
+    // Active plate owned by another user
     return next(new AppError('Vehicle with this plate number already exists', 409));
   }
 
   const vehicle = await Vehicle.create({
     ...req.body,
-    owner: req.user._id,
+    plateNumber,
+    owner: ownerId,
   });
 
   res.status(201).json({ success: true, vehicle });
@@ -49,17 +77,17 @@ exports.updateVehicle = asyncHandler(async (req, res, next) => {
 });
 
 exports.deleteVehicle = asyncHandler(async (req, res, next) => {
-  const vehicle = await Vehicle.findOneAndUpdate(
-    { _id: req.params.id, owner: req.user._id },
-    { isActive: false },
-    { new: true }
-  );
+  // Hard delete so the plate number can be registered again
+  const vehicle = await Vehicle.findOneAndDelete({
+    _id: req.params.id,
+    owner: req.user._id,
+  });
 
   if (!vehicle) {
     return next(new AppError('Vehicle not found', 404));
   }
 
-  res.json({ success: true, message: 'Vehicle deactivated' });
+  res.json({ success: true, message: 'Vehicle deleted' });
 });
 
 exports.getNearbyOnlineVehicles = asyncHandler(async (req, res) => {
