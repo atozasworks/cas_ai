@@ -18,7 +18,8 @@ import {
 import { useTheme } from '../../hooks/useTheme';
 import './LandingPage.css';
 
-const GITHUB_REPO_URL = String(process.env.REACT_APP_GITHUB_REPO_URL || '').trim();
+const DEFAULT_GITHUB_REPO_URL = 'https://github.com/atozasworks/cas_ai';
+const GITHUB_REPO_URL = String(process.env.REACT_APP_GITHUB_REPO_URL || DEFAULT_GITHUB_REPO_URL).trim();
 const HERO_IMAGE = `${process.env.PUBLIC_URL || ''}/images/landing.png`;
 
 export default function LandingPage() {
@@ -245,11 +246,7 @@ export default function LandingPage() {
               >
                 Open GitHub repository
               </button>
-              {!GITHUB_REPO_URL && (
-                <p className="landing-page__repo-hint">
-                  Set <code className="landing-page__code">REACT_APP_GITHUB_REPO_URL</code> in <code className="landing-page__code">.env</code> to enable the repository link.
-                </p>
-              )}
+              
             </div>
           </div>
         </div>
