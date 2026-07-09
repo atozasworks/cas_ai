@@ -1,0 +1,12 @@
+[
+    {
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.ucasaapp.app",
+        "sha256_cert_fingerprints": [
+          "51:05:A6:86:BA:6C:19:94:00:F6:49:FE:44:C0:9E:85:0F:D9:80:CC:F3:40:97:FC:61:F3:32:0A:1D:40:EB:62"
+        ]
+      }
+    }
+  ]
