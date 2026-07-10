@@ -32,7 +32,7 @@ function PrivateRoute({ children }) {
 function TrackRoute() {
   const isMobile = useIsMobile();
   if (isMobile) return <MobileTrackScreen />;
-  return <Navigate to="/" replace />;
+  return <Navigate to="/home" replace />;
 }
 
 function MobileLoginGate({ initialMode = 'login' }) {
@@ -81,11 +81,12 @@ function AppRoutes() {
       {isAuthenticated && <BottomNav />}
       <Routes>
         <Route path="/login" element={
-          isAuthenticated ? <Navigate to="/" replace /> : <MobileLoginGate initialMode="login" />
+          isAuthenticated ? <Navigate to="/home" replace /> : <MobileLoginGate initialMode="login" />
         } />
-        <Route path="/" element={
+        <Route path="/home" element={
           isAuthenticated ? <DashboardPage /> : <LandingPage />
         } />
+        <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="/track" element={
           <PrivateRoute><TrackRoute /></PrivateRoute>
         } />
@@ -95,7 +96,7 @@ function AppRoutes() {
         <Route path="/settings" element={
           <PrivateRoute><SettingsPage /></PrivateRoute>
         } />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
     </>
   );
