@@ -3,18 +3,18 @@ import { getRuntimeConfig } from './runtimeConfig';
 
 const normalizeBaseUrl = (value) => String(value || '').trim().replace(/\/+$/, '');
 
-/*
- * Easy manual switch (if needed):
- * HOME URLs:
- *  // http://localhost:7760/home
- *   // https://casai.testatozas.in/home
- *   // https://www.ucasaapp.com/home
- *
- * SOCKET origins (use one of these if you want manual forcing):
-   const MANUAL_SOCKET_URL = 'http://localhost:5000';
- *   // const MANUAL_SOCKET_URL = 'https://casai.testatozas.in';
- *   // const MANUAL_SOCKET_URL = 'https://www.ucasaapp.com';
- */
+// Easy manual switch (optional)
+// HOME URLs (reference):
+// http://localhost:7760/home
+// https://casai.testatozas.in/home
+// https://www.ucasaapp.com/home
+//
+// SOCKET origins (choose one by uncommenting if needed):
+// const MANUAL_SOCKET_URL = 'http://localhost:5000';
+// const MANUAL_SOCKET_URL = 'https://casai.testatozas.in';
+// const MANUAL_SOCKET_URL = 'https://www.ucasaapp.com';
+//
+// Default auto mode:
 const MANUAL_SOCKET_URL = '';
 
 const deriveSocketUrl = () => {
