@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../hooks/useTheme';
 import { FiUser, FiShield, FiBell, FiSun, FiVolume2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import './SettingsPage.css';
 
 export default function SettingsPage() {
   const { user, updatePreferences, updateProfile } = useAuth();
@@ -76,27 +77,33 @@ export default function SettingsPage() {
   };
 
   return (
-    <div style={styles.page} className="mobile-page-padding mobile-main mobile-settings-page">
-      <h2 style={styles.pageTitle}>Settings</h2>
+    <div className="settings-page mobile-page-padding mobile-main mobile-settings-page">
+      <header className="settings-page__header">
+        <h2 className="settings-page__title">Settings</h2>
+        <p className="settings-page__subtitle">Manage your profile and in-app alert preferences.</p>
+      </header>
 
-      <div className="card" style={{ marginBottom: 20 }}>
-        <div style={styles.profileHeader}>
-          <h3 style={{ ...styles.section, marginBottom: 0 }}><FiUser /> Profile</h3>
+      <section className="settings-panel card">
+        <div className="settings-panel__header">
+          <h3 className="settings-section-title">
+            <span className="settings-section-title__icon"><FiUser /></span>
+            <span>Profile</span>
+          </h3>
           {!isEditingProfile ? (
             <button
               type="button"
               onClick={() => setIsEditingProfile(true)}
-              style={styles.profileEditBtn}
+              className="settings-btn settings-btn--ghost"
             >
               Edit Profile
             </button>
           ) : (
-            <div style={styles.profileActions}>
+            <div className="settings-btn-group">
               <button
                 type="button"
                 onClick={handleProfileSave}
                 disabled={profileSubmitting}
-                style={styles.profileSaveBtn}
+                className="settings-btn settings-btn--primary"
               >
                 {profileSubmitting ? 'Saving...' : 'Save'}
               </button>
@@ -104,126 +111,131 @@ export default function SettingsPage() {
                 type="button"
                 onClick={handleProfileCancel}
                 disabled={profileSubmitting}
-                style={styles.profileCancelBtn}
+                className="settings-btn settings-btn--ghost"
               >
                 Cancel
               </button>
             </div>
           )}
         </div>
-        <div style={styles.infoRow}>
-          <span style={styles.label}>Name</span>
-          {isEditingProfile ? (
-            <input
-              type="text"
-              value={profileForm.name}
-              onChange={(e) => setProfileForm((prev) => ({ ...prev, name: e.target.value }))}
-              style={styles.profileInput}
-            />
-          ) : (
-            <span style={styles.value}>{user?.name}</span>
-          )}
-        </div>
-        <div style={styles.infoRow}>
-          <span style={styles.label}>Email</span>
-          {isEditingProfile ? (
-            <input
-              type="email"
-              value={profileForm.email}
-              onChange={(e) => setProfileForm((prev) => ({ ...prev, email: e.target.value }))}
-              style={styles.profileInput}
-            />
-          ) : (
-            <span style={styles.value}>{user?.email}</span>
-          )}
-        </div>
-        <div style={styles.infoRow}>
-          <span style={styles.label}>Role</span>
-          <span style={styles.value}>{user?.role}</span>
-        </div>
-      </div>
 
-      <div className="card settings-card" style={{ marginBottom: 20 }}>
-        <h3 style={styles.section}><FiBell /> Alert Preferences</h3>
-
-        <div className="setting-row" style={styles.settingRow}>
-          <div>
-            <div style={styles.settingLabel}><FiVolume2 /> Alert Sound</div>
-            <div style={styles.settingDesc}>Play audio when risk detected</div>
+        <div className="settings-info-list">
+          <div className="settings-info-row">
+            <span className="settings-label">Name</span>
+            <div className="settings-value-wrap">
+              {isEditingProfile ? (
+                <input
+                  type="text"
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm((prev) => ({ ...prev, name: e.target.value }))}
+                  className="settings-input"
+                />
+              ) : (
+                <span className="settings-value">{user?.name}</span>
+              )}
+            </div>
           </div>
-          <span className="setting-control">
-            <button
-              onClick={() => toggle('alertSound')}
-              style={{ ...styles.toggleBtn, background: prefs.alertSound ? '#22c55e' : 'var(--bg-tertiary)' }}
-            >
-              <div style={{
-                ...styles.toggleDot,
-                transform: prefs.alertSound ? 'translateX(20px)' : 'translateX(2px)',
-              }} />
-            </button>
-          </span>
+
+          <div className="settings-info-row">
+            <span className="settings-label">Email</span>
+            <div className="settings-value-wrap">
+              {isEditingProfile ? (
+                <input
+                  type="email"
+                  value={profileForm.email}
+                  onChange={(e) => setProfileForm((prev) => ({ ...prev, email: e.target.value }))}
+                  className="settings-input"
+                />
+              ) : (
+                <span className="settings-value">{user?.email}</span>
+              )}
+            </div>
+          </div>
+
+          <div className="settings-info-row">
+            <span className="settings-label">Role</span>
+            <span className="settings-value settings-role-badge">{user?.role}</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="settings-panel card">
+        <div className="settings-panel__header">
+          <h3 className="settings-section-title">
+            <span className="settings-section-title__icon"><FiBell /></span>
+            <span>Alert Preferences</span>
+          </h3>
         </div>
 
-        <div className="setting-row" style={styles.settingRow}>
-          <div>
-            <div style={styles.settingLabel}><FiVolume2 /> Voice Alerts</div>
-            <div style={styles.settingDesc}>Spoken warnings for high-risk events</div>
+        <div className="settings-item">
+          <div className="settings-item__content">
+            <div className="settings-item__title"><FiVolume2 /> Alert Sound</div>
+            <div className="settings-item__description">Play audio when risk detected</div>
           </div>
-          <span className="setting-control">
-            <button
-              onClick={() => toggle('voiceAlerts')}
-              style={{ ...styles.toggleBtn, background: prefs.voiceAlerts ? '#22c55e' : 'var(--bg-tertiary)' }}
-            >
-              <div style={{
-                ...styles.toggleDot,
-                transform: prefs.voiceAlerts ? 'translateX(20px)' : 'translateX(2px)',
-              }} />
-            </button>
-          </span>
+          <button
+            type="button"
+            onClick={() => toggle('alertSound')}
+            className={`settings-toggle ${prefs.alertSound ? 'is-on' : ''}`}
+            aria-pressed={prefs.alertSound}
+            aria-label="Toggle alert sound"
+          >
+            <span className="settings-toggle__dot" />
+          </button>
         </div>
 
-        <div className="setting-row" style={styles.settingRow}>
-          <div>
-            <div style={styles.settingLabel}><FiSun /> Dark Mode</div>
-            <div style={styles.settingDesc}>Toggle dark/light theme</div>
+        <div className="settings-item">
+          <div className="settings-item__content">
+            <div className="settings-item__title"><FiVolume2 /> Voice Alerts</div>
+            <div className="settings-item__description">Spoken warnings for high-risk events</div>
           </div>
-          <span className="setting-control">
-            <button
-              onClick={toggleTheme}
-              style={{ ...styles.toggleBtn, background: theme === 'dark' ? '#22c55e' : 'var(--bg-tertiary)' }}
-            >
-              <div style={{
-                ...styles.toggleDot,
-                transform: theme === 'dark' ? 'translateX(20px)' : 'translateX(2px)',
-              }} />
-            </button>
-          </span>
+          <button
+            type="button"
+            onClick={() => toggle('voiceAlerts')}
+            className={`settings-toggle ${prefs.voiceAlerts ? 'is-on' : ''}`}
+            aria-pressed={prefs.voiceAlerts}
+            aria-label="Toggle voice alerts"
+          >
+            <span className="settings-toggle__dot" />
+          </button>
         </div>
 
-        <div className="setting-row" style={styles.settingRow}>
-          <div>
-            <div style={styles.settingLabel}><FiShield /> Alert Sensitivity</div>
-            <div style={styles.settingDesc}>Controls warning threshold</div>
+        <div className="settings-item">
+          <div className="settings-item__content">
+            <div className="settings-item__title"><FiSun /> Dark Mode</div>
+            <div className="settings-item__description">Toggle dark/light theme</div>
           </div>
-          <span className="setting-control">
-            <select
-              value={prefs.alertSensitivity}
-              onChange={(e) => setPrefs({ ...prefs, alertSensitivity: e.target.value })}
-              style={styles.select}
-              className="setting-select"
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </span>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className={`settings-toggle ${theme === 'dark' ? 'is-on' : ''}`}
+            aria-pressed={theme === 'dark'}
+            aria-label="Toggle dark mode"
+          >
+            <span className="settings-toggle__dot" />
+          </button>
         </div>
-      </div>
+
+        <div className="settings-item settings-item--select">
+          <div className="settings-item__content">
+            <div className="settings-item__title"><FiShield /> Alert Sensitivity</div>
+            <div className="settings-item__description">Controls warning threshold</div>
+          </div>
+          <select
+            value={prefs.alertSensitivity}
+            onChange={(e) => setPrefs({ ...prefs, alertSensitivity: e.target.value })}
+            className="settings-select"
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+      </section>
 
       <button
+        type="button"
         onClick={handleSave}
-        className="btn btn-primary"
-        style={styles.saveBtn}
+        className="settings-save-btn"
         disabled={savingPreferences}
       >
         {savingPreferences ? 'Saving...' : 'Save Preferences'}
@@ -231,120 +243,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-const styles = {
-  page: { padding: 24, maxWidth: 600, margin: '0 auto' },
-  pageTitle: { fontSize: 24, fontWeight: 700, marginBottom: 20, color: 'var(--text-primary)' },
-  profileHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 8,
-  },
-  profileActions: {
-    display: 'flex',
-    gap: 8,
-  },
-  profileEditBtn: {
-    border: '1px solid var(--border-color)',
-    background: 'var(--bg-tertiary)',
-    color: 'var(--text-primary)',
-    borderRadius: 6,
-    padding: '6px 10px',
-    fontSize: 12,
-    fontWeight: 600,
-    cursor: 'pointer',
-  },
-  profileSaveBtn: {
-    border: 'none',
-    background: '#3b82f6',
-    color: 'white',
-    borderRadius: 6,
-    padding: '6px 10px',
-    fontSize: 12,
-    fontWeight: 600,
-    cursor: 'pointer',
-  },
-  profileCancelBtn: {
-    border: '1px solid var(--border-color)',
-    background: 'var(--bg-tertiary)',
-    color: 'var(--text-primary)',
-    borderRadius: 6,
-    padding: '6px 10px',
-    fontSize: 12,
-    fontWeight: 600,
-    cursor: 'pointer',
-  },
-  profileInput: {
-    minWidth: 220,
-    maxWidth: '60%',
-    padding: '6px 10px',
-    fontSize: 13,
-    borderRadius: 6,
-    background: 'var(--bg-tertiary)',
-    color: 'var(--text-primary)',
-    border: '1px solid var(--border-color)',
-  },
-  section: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16,
-  },
-  infoRow: {
-    display: 'flex', justifyContent: 'space-between', padding: '10px 0',
-    borderBottom: '1px solid var(--border-color)',
-    gap: 16,
-  },
-  label: { color: 'var(--text-muted)', fontSize: 14 },
-  value: { color: 'var(--text-primary)', fontSize: 14, fontWeight: 500 },
-  profileField: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'stretch',
-    gap: 10,
-    flex: 1,
-    maxWidth: 280,
-  },
-  input: {
-    width: '100%',
-    padding: '10px 12px',
-    fontSize: 14,
-    borderRadius: 8,
-    border: '1px solid var(--border-color)',
-    background: 'var(--bg-tertiary)',
-    color: 'var(--text-primary)',
-  },
-  profileSaveBtn: {
-    width: '100%',
-    minHeight: 42,
-    fontSize: 14,
-    fontWeight: 600,
-  },
-  settingRow: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '14px 0', borderBottom: '1px solid var(--border-color)',
-  },
-  settingLabel: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' },
-  settingDesc: { fontSize: 12, color: 'var(--text-muted)', marginTop: 2 },
-  toggleBtn: {
-    width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
-    position: 'relative', transition: 'all 0.3s',
-  },
-  toggleDot: {
-    width: 20, height: 20, borderRadius: '50%', background: 'white',
-    position: 'absolute', top: 2, transition: 'all 0.3s',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-  },
-  select: {
-    padding: '6px 10px', fontSize: 13, borderRadius: 6,
-    background: 'var(--bg-tertiary)', color: 'var(--text-primary)',
-    border: '1px solid var(--border-color)',
-  },
-  saveBtn: {
-    width: '100%',
-    minHeight: 48,
-    padding: '14px 20px',
-    fontSize: 16,
-    fontWeight: 600,
-  },
-};
