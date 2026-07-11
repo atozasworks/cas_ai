@@ -1,15 +1,11 @@
 import { io } from 'socket.io-client';
-import { getRuntimeConfig } from './runtimeConfig';
 
 const normalizeBaseUrl = (value) => String(value || '').trim().replace(/\/+$/, '');
-
 // Easy manual switch (no comment/uncomment needed)
 // Set SOCKET_TARGET to one of: 'AUTO' | 'LOCAL' | 'TEST' | 'LIVE'
-// HOME URLs (reference):
-// http://localhost:7760/home
-// https://casai.testatozas.in/home
-// https://www.ucasaapp.com/home
-const SOCKET_TARGET = 'LOCAL';
+// When the app runs on localhost, the socket always uses LOCAL (port 5000)
+// to avoid cross-domain CORS errors. SOCKET_TARGET only applies on deployed domains.
+const SOCKET_TARGET = 'AUTO';
 const MANUAL_SOCKET_URLS = {
   LOCAL: 'http://localhost:5000',
   TEST: 'https://casai.testatozas.in',
@@ -19,31 +15,29 @@ const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0']);
 const isLocalHost = () => LOCAL_HOSTS.has(window.location.hostname);
 
 const deriveSocketUrl = () => {
-  // In deployed environments, always use same-origin socket endpoint.
-  // This prevents accidental cross-domain CORS failures from stale env/manual settings.
+  // Deployed app: always same-origin (prevents cross-domain CORS).
   if (!isLocalHost()) return window.location.origin;
 
-  const selectedKey = String(SOCKET_TARGET || 'AUTO').toUpperCase();
-  if (selectedKey !== 'AUTO') {
-    const forcedManualUrl = normalizeBaseUrl(MANUAL_SOCKET_URLS[selectedKey]);
-    if (forcedManualUrl) return forcedManualUrl;
-  }
-
+  // Local dev: always local backend unless REACT_APP_SOCKET_URL is explicitly set.
   const envSocketUrl = normalizeBaseUrl(process.env.REACT_APP_SOCKET_URL);
   if (envSocketUrl) return envSocketUrl;
 
-  const runtimeApiUrl = normalizeBaseUrl(getRuntimeConfig()?.apiUrl);
-  if (runtimeApiUrl) {
-    // Convert full API URL like https://domain.com/api/v1 to socket origin https://domain.com
-    try {
-      const parsed = new URL(runtimeApiUrl, window.location.origin);
-      return `${parsed.protocol}//${parsed.host}`;
-    } catch (_) {
-      // Ignore parse errors and continue fallback chain.
+  const selectedKey = String(SOCKET_TARGET || 'AUTO').toUpperCase();
+  if (selectedKey === 'LOCAL' || selectedKey === 'AUTO') {
+    return MANUAL_SOCKET_URLS.LOCAL;
+  }
+
+  if (selectedKey !== 'AUTO') {
+    const forcedManualUrl = normalizeBaseUrl(MANUAL_SOCKET_URLS[selectedKey]);
+    if (forcedManualUrl) {
+      console.warn(
+        `[Socket] SOCKET_TARGET=${selectedKey} from localhost causes cross-domain CORS. `
+        + 'Using local backend instead. Set REACT_APP_SOCKET_URL to override.'
+      );
     }
   }
 
-  return window.location.origin;
+  return MANUAL_SOCKET_URLS.LOCAL;
 };
 
 let socket = null;
