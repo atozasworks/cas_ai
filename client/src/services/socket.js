@@ -9,14 +9,20 @@ const normalizeBaseUrl = (value) => String(value || '').trim().replace(/\/+$/, '
 // http://localhost:7760/home
 // https://casai.testatozas.in/home
 // https://www.ucasaapp.com/home
-const SOCKET_TARGET = 'LOCAL';
+const SOCKET_TARGET = 'LIVE';
 const MANUAL_SOCKET_URLS = {
   LOCAL: 'http://localhost:5000',
   TEST: 'https://casai.testatozas.in',
   LIVE: 'https://www.ucasaapp.com',
 };
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0']);
+const isLocalHost = () => LOCAL_HOSTS.has(window.location.hostname);
 
 const deriveSocketUrl = () => {
+  // In deployed environments, always use same-origin socket endpoint.
+  // This prevents accidental cross-domain CORS failures from stale env/manual settings.
+  if (!isLocalHost()) return window.location.origin;
+
   const selectedKey = String(SOCKET_TARGET || 'AUTO').toUpperCase();
   if (selectedKey !== 'AUTO') {
     const forcedManualUrl = normalizeBaseUrl(MANUAL_SOCKET_URLS[selectedKey]);
