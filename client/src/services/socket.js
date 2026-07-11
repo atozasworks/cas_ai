@@ -10,9 +10,9 @@ const normalizeBaseUrl = (value) => String(value || '').trim().replace(/\/+$/, '
 // https://www.ucasaapp.com/home
 //
 // SOCKET origins (choose one by uncommenting if needed):
-// const MANUAL_SOCKET_URL = 'http://localhost:5000';
-// const MANUAL_SOCKET_URL = 'https://casai.testatozas.in';
-// const MANUAL_SOCKET_URL = 'https://www.ucasaapp.com';
+//const MANUAL_SOCKET_URL = 'http://localhost:5000';
+//const MANUAL_SOCKET_URL = 'https://casai.testatozas.in';
+//const MANUAL_SOCKET_URL = 'https://www.ucasaapp.com';
 //
 // Default auto mode:
 const MANUAL_SOCKET_URL = '';
