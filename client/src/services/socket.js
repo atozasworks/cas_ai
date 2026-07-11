@@ -3,23 +3,25 @@ import { getRuntimeConfig } from './runtimeConfig';
 
 const normalizeBaseUrl = (value) => String(value || '').trim().replace(/\/+$/, '');
 
-// Easy manual switch (optional)
+// Easy manual switch (no comment/uncomment needed)
+// Set SOCKET_TARGET to one of: 'AUTO' | 'LOCAL' | 'TEST' | 'LIVE'
 // HOME URLs (reference):
 // http://localhost:7760/home
 // https://casai.testatozas.in/home
 // https://www.ucasaapp.com/home
-//
-// SOCKET origins (choose one by uncommenting if needed):
-//const MANUAL_SOCKET_URL = 'http://localhost:5000';
-//const MANUAL_SOCKET_URL = 'https://casai.testatozas.in';
-//const MANUAL_SOCKET_URL = 'https://www.ucasaapp.com';
-//
-// Default auto mode:
-const MANUAL_SOCKET_URL = '';
+const SOCKET_TARGET = 'AUTO';
+const MANUAL_SOCKET_URLS = {
+  LOCAL: 'http://localhost:5000',
+  TEST: 'https://casai.testatozas.in',
+  LIVE: 'https://www.ucasaapp.com',
+};
 
 const deriveSocketUrl = () => {
-  const forcedManualUrl = normalizeBaseUrl(MANUAL_SOCKET_URL);
-  if (forcedManualUrl) return forcedManualUrl;
+  const selectedKey = String(SOCKET_TARGET || 'AUTO').toUpperCase();
+  if (selectedKey !== 'AUTO') {
+    const forcedManualUrl = normalizeBaseUrl(MANUAL_SOCKET_URLS[selectedKey]);
+    if (forcedManualUrl) return forcedManualUrl;
+  }
 
   const envSocketUrl = normalizeBaseUrl(process.env.REACT_APP_SOCKET_URL);
   if (envSocketUrl) return envSocketUrl;
