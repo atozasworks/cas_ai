@@ -9,7 +9,7 @@ const normalizeBaseUrl = (value) => String(value || '').trim().replace(/\/+$/, '
 // http://localhost:7760/home
 // https://casai.testatozas.in/home
 // https://www.ucasaapp.com/home
-const SOCKET_TARGET = 'local';
+const SOCKET_TARGET = 'LOCAL';
 const MANUAL_SOCKET_URLS = {
   LOCAL: 'http://localhost:5000',
   TEST: 'https://casai.testatozas.in',
