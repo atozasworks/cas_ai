@@ -32,7 +32,12 @@ let io = null;
 function initializeSocket(httpServer) {
   io = new Server(httpServer, {
     cors: {
-      origin: config.cors.allowedOrigins,
+      origin: (origin, callback) => {
+        if (config.cors.isOriginAllowed(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error(`CORS blocked for origin: ${origin}`));
+      },
       methods: ['GET', 'POST'],
       credentials: true,
     },

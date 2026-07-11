@@ -28,10 +28,9 @@ app.use(helmet({
   crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
 }));
 app.use(compression());
-const isOriginAllowed = (origin) => !origin || config.cors.allowedOrigins.includes(origin.replace(/\/+$/, ''));
 app.use(cors({
   origin: (origin, callback) => {
-    if (isOriginAllowed(origin)) {
+    if (config.cors.isOriginAllowed(origin)) {
       return callback(null, true);
     }
     return callback(new Error(`CORS blocked for origin: ${origin}`));

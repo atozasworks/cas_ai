@@ -10,6 +10,44 @@ const parseCsv = (value) =>
     .filter(Boolean);
 
 const parseOrigins = parseCsv;
+const normalizeOrigin = (origin) => {
+  const raw = String(origin || '').trim();
+  if (!raw) return '';
+  const sanitized = raw.replace(/\/+$/, '');
+
+  try {
+    const parsed = new URL(sanitized);
+    const protocol = parsed.protocol.toLowerCase();
+    const host = parsed.hostname.toLowerCase().replace(/\.+$/, '');
+    const isDefaultPort = (protocol === 'http:' && parsed.port === '80')
+      || (protocol === 'https:' && parsed.port === '443');
+    const port = parsed.port && !isDefaultPort ? `:${parsed.port}` : '';
+    return `${protocol}//${host}${port}`;
+  } catch (_) {
+    return sanitized.toLowerCase().replace(/\.+$/, '');
+  }
+};
+const isIpLikeHost = (host) => /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
+const withWwwVariants = (origin) => {
+  const normalized = normalizeOrigin(origin);
+  if (!normalized) return [];
+
+  try {
+    const parsed = new URL(normalized);
+    const host = parsed.hostname;
+    if (host === 'localhost' || isIpLikeHost(host)) return [normalized];
+
+    const baseHost = host.startsWith('www.') ? host.slice(4) : host;
+    const protocol = parsed.protocol;
+    const port = parsed.port ? `:${parsed.port}` : '';
+    return [
+      `${protocol}//${baseHost}${port}`,
+      `${protocol}//www.${baseHost}${port}`,
+    ];
+  } catch (_) {
+    return [normalized];
+  }
+};
 const localDevOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
@@ -27,6 +65,11 @@ const allowedOrigins = Array.from(
       : configuredOrigins
   )
 );
+const normalizedAllowedOrigins = Array.from(new Set(
+  allowedOrigins.flatMap((origin) => withWwwVariants(origin)).filter(Boolean)
+));
+const allowedOriginSet = new Set(normalizedAllowedOrigins);
+const isOriginAllowed = (origin) => !origin || allowedOriginSet.has(normalizeOrigin(origin));
 const googleClientIds = Array.from(
   new Set(parseCsv(process.env.GOOGLE_CLIENT_IDS || process.env.GOOGLE_CLIENT_ID))
 );
@@ -105,7 +148,9 @@ const config = {
   },
 
   cors: {
-    allowedOrigins,
+    allowedOrigins: normalizedAllowedOrigins,
+    isOriginAllowed,
+    normalizeOrigin,
   },
 
   rateLimit: {
