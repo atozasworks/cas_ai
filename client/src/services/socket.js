@@ -3,7 +3,24 @@ import { getRuntimeConfig } from './runtimeConfig';
 
 const normalizeBaseUrl = (value) => String(value || '').trim().replace(/\/+$/, '');
 
+/*
+ * Easy manual switch (if needed):
+ * HOME URLs:
+ *   // http://localhost:7760/home
+ *   // https://casai.testatozas.in/home
+ *   // https://www.ucasaapp.com/home
+ *
+ * SOCKET origins (use one of these if you want manual forcing):
+ *   // const MANUAL_SOCKET_URL = 'http://localhost:5000';
+ *   // const MANUAL_SOCKET_URL = 'https://casai.testatozas.in';
+ *   // const MANUAL_SOCKET_URL = 'https://www.ucasaapp.com';
+ */
+const MANUAL_SOCKET_URL = '';
+
 const deriveSocketUrl = () => {
+  const forcedManualUrl = normalizeBaseUrl(MANUAL_SOCKET_URL);
+  if (forcedManualUrl) return forcedManualUrl;
+
   const envSocketUrl = normalizeBaseUrl(process.env.REACT_APP_SOCKET_URL);
   if (envSocketUrl) return envSocketUrl;
 
@@ -26,9 +43,18 @@ let socket = null;
 export function connectSocket() {
   if (socket?.connected) return socket;
   const socketUrl = deriveSocketUrl();
+  if (socket) {
+    socket.removeAllListeners();
+    socket.close();
+    socket = null;
+  }
 
   socket = io(socketUrl, {
-    transports: ['websocket', 'polling'],
+    // Start with polling for reliability on restrictive mobile networks, then upgrade to websocket.
+    transports: ['polling', 'websocket'],
+    tryAllTransports: true,
+    path: '/socket.io',
+    withCredentials: true,
     reconnection: true,
     reconnectionAttempts: 20,
     reconnectionDelay: 2000,
