@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../hooks/useTheme';
-import { FiUser, FiShield, FiBell, FiSun, FiVolume2 } from 'react-icons/fi';
+import { FiUser, FiShield, FiBell, FiSun, FiMoon, FiVolume2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './SettingsPage.css';
 
@@ -201,7 +201,12 @@ export default function SettingsPage() {
 
         <div className="settings-item">
           <div className="settings-item__content">
-            <div className="settings-item__title"><FiSun /> Dark Mode</div>
+            <div className="settings-item__title">
+              {theme === 'dark'
+                ? <FiMoon style={{ color: '#818cf8', filter: 'drop-shadow(0 0 5px rgba(129, 140, 248, 0.45))' }} />
+                : <FiSun style={{ color: '#f59e0b', filter: 'drop-shadow(0 0 5px rgba(245, 158, 11, 0.5))' }} />}
+              {' '}Dark Mode
+            </div>
             <div className="settings-item__description">Toggle dark/light theme</div>
           </div>
           <button

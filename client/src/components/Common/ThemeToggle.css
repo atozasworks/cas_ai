@@ -1,0 +1,167 @@
+/* ── Animated sun/moon theme toggle ── */
+
+.theme-toggle {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.35));
+  background: var(--bg-tertiary, rgba(148, 163, 184, 0.12));
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  outline: none;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    background 0.3s ease,
+    transform 0.15s ease;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.08);
+}
+
+.theme-toggle:active {
+  transform: scale(0.92);
+}
+
+/* Soft glow behind the icon */
+.theme-toggle__halo {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.4s ease, background 0.4s ease;
+  pointer-events: none;
+}
+
+/* Dark theme shows the SUN (click -> light) */
+.theme-toggle--dark:hover {
+  border-color: rgba(245, 158, 11, 0.55);
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.35);
+}
+
+.theme-toggle--dark .theme-toggle__halo {
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.28) 0%, transparent 70%);
+}
+
+.theme-toggle--dark:hover .theme-toggle__halo {
+  opacity: 1;
+}
+
+/* Light theme shows the MOON (click -> dark) */
+.theme-toggle--light:hover {
+  border-color: rgba(99, 102, 241, 0.55);
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.3);
+}
+
+.theme-toggle--light .theme-toggle__halo {
+  background: radial-gradient(circle, rgba(129, 140, 248, 0.25) 0%, transparent 70%);
+}
+
+.theme-toggle--light:hover .theme-toggle__halo {
+  opacity: 1;
+}
+
+/* ── Icons ── */
+
+.theme-toggle__icon {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  transition:
+    transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.3s ease;
+  will-change: transform, opacity;
+}
+
+.theme-toggle__icon--sun {
+  color: #f59e0b;
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.5));
+}
+
+.theme-toggle__icon--moon {
+  color: #818cf8;
+  filter: drop-shadow(0 0 6px rgba(129, 140, 248, 0.45));
+}
+
+/* Sun visible in dark theme */
+.theme-toggle--dark .theme-toggle__icon--sun {
+  transform: rotate(0deg) scale(1);
+  opacity: 1;
+}
+
+.theme-toggle--dark .theme-toggle__icon--moon {
+  transform: rotate(-120deg) scale(0);
+  opacity: 0;
+}
+
+/* Moon visible in light theme */
+.theme-toggle--light .theme-toggle__icon--sun {
+  transform: rotate(120deg) scale(0);
+  opacity: 0;
+}
+
+.theme-toggle--light .theme-toggle__icon--moon {
+  transform: rotate(0deg) scale(1);
+  opacity: 1;
+}
+
+/* Sun slowly spins on hover */
+.theme-toggle--dark:hover .theme-toggle__icon--sun {
+  animation: theme-toggle-spin 6s linear infinite;
+}
+
+/* Moon gently rocks on hover */
+.theme-toggle--light:hover .theme-toggle__icon--moon {
+  animation: theme-toggle-rock 1.6s ease-in-out infinite;
+}
+
+@keyframes theme-toggle-spin {
+  from { transform: rotate(0deg) scale(1); }
+  to { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes theme-toggle-rock {
+  0%, 100% { transform: rotate(-8deg) scale(1); }
+  50% { transform: rotate(8deg) scale(1); }
+}
+
+/* ── Tiny stars twinkle around the moon (light theme only) ── */
+
+.theme-toggle__stars {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.theme-toggle--light .theme-toggle__stars {
+  opacity: 1;
+}
+
+.theme-toggle__stars i {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #a5b4fc;
+  animation: theme-toggle-twinkle 2.2s ease-in-out infinite;
+}
+
+.theme-toggle__stars i:nth-child(1) { top: 7px; left: 9px; animation-delay: 0s; }
+.theme-toggle__stars i:nth-child(2) { top: 10px; right: 8px; width: 2px; height: 2px; animation-delay: 0.7s; }
+.theme-toggle__stars i:nth-child(3) { bottom: 8px; left: 12px; width: 2px; height: 2px; animation-delay: 1.4s; }
+
+@keyframes theme-toggle-twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}

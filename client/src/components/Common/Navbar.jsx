@@ -4,8 +4,9 @@ import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import { useTheme } from '../../hooks/useTheme';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
-import { FiShield, FiMap, FiBarChart2, FiSettings, FiLogOut, FiSun, FiMoon, FiWifi, FiWifiOff, FiChevronDown, FiCamera, FiDownload } from 'react-icons/fi';
+import { FiShield, FiMap, FiBarChart2, FiSettings, FiLogOut, FiWifi, FiWifiOff, FiChevronDown, FiCamera, FiDownload } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import ThemeToggle from './ThemeToggle';
 
 const AVATAR_PREVIEW_SIZE = 220;
 const AVATAR_OUTPUT_SIZE = 256;
@@ -268,9 +269,7 @@ export default function Navbar() {
               : <><FiWifiOff style={{ color: '#ef4444' }} /> <span style={{ color: '#ef4444', fontSize: 12 }}>Offline</span></>
             }
           </div>
-          <button onClick={toggleTheme} style={styles.iconBtn} title="Toggle theme">
-            {theme === 'dark' ? <FiSun /> : <FiMoon />}
-          </button>
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
 
           {/* Profile Dropdown */}
           <div ref={dropdownRef} style={styles.profileWrapper}>
@@ -451,11 +450,6 @@ const styles = {
   },
   right: { display: 'flex', alignItems: 'center', gap: 10 },
   status: { display: 'flex', alignItems: 'center', gap: 4 },
-  iconBtn: {
-    background: 'none', border: 'none', color: 'var(--text-secondary)',
-    fontSize: 18, cursor: 'pointer', padding: 6, borderRadius: 6,
-    display: 'flex', alignItems: 'center',
-  },
   profileWrapper: {
     position: 'relative',
   },

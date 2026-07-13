@@ -143,27 +143,10 @@
   margin-left: auto;
 }
 
-.landing-page__theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.4rem;
-  height: 2.4rem;
-  color: #475569;
+/* Theme toggle now uses the shared ThemeToggle component */
+.landing-page__nav-actions .theme-toggle {
   background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(226, 232, 240, 0.95);
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  min-height: unset;
-  min-width: unset;
-}
-
-.landing-page__theme-toggle:hover {
-  color: #3b82f6;
-  border-color: rgba(59, 130, 246, 0.35);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.12);
-  transform: scale(1.05);
+  border-color: rgba(226, 232, 240, 0.95);
 }
 
 .landing-page__btn {
@@ -757,8 +740,7 @@
 
 [data-theme="dark"] .landing-page__brand-sub { color: #94a3b8; }
 
-[data-theme="dark"] .landing-page__theme-toggle {
-  color: #cbd5e1;
+[data-theme="dark"] .landing-page__nav-actions .theme-toggle {
   background: rgba(30, 41, 59, 0.8);
   border-color: rgba(51, 65, 85, 0.85);
 }

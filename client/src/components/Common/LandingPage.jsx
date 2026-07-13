@@ -5,8 +5,6 @@ import {
   FiBell,
   FiMapPin,
   FiX,
-  FiSun,
-  FiMoon,
   FiShield,
   FiUser,
   FiUsers,
@@ -16,6 +14,7 @@ import {
   FiZap,
 } from 'react-icons/fi';
 import { useTheme } from '../../hooks/useTheme';
+import ThemeToggle from './ThemeToggle';
 import './LandingPage.css';
 
 const DEFAULT_GITHUB_REPO_URL = 'https://github.com/atozasworks/cas_ai';
@@ -66,15 +65,7 @@ export default function LandingPage() {
           </div>
         </div>
         <div className="landing-page__nav-actions">
-          <button
-            type="button"
-            className="landing-page__theme-toggle"
-            onClick={toggleTheme}
-            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
-          >
-            {theme === 'dark' ? <FiSun /> : <FiMoon />}
-          </button>
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
           <button
             type="button"
             onClick={() => setLegalOpen(true)}

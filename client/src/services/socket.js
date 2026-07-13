@@ -5,7 +5,7 @@ const normalizeBaseUrl = (value) => String(value || '').trim().replace(/\/+$/, '
 // Set SOCKET_TARGET to one of: 'AUTO' | 'LOCAL' | 'TEST' | 'LIVE'
 // When the app runs on localhost, the socket always uses LOCAL (port 5000)
 // to avoid cross-domain CORS errors. SOCKET_TARGET only applies on deployed domains.
-const SOCKET_TARGET = 'AUTO';
+const SOCKET_TARGET = 'LOCAL';
 const MANUAL_SOCKET_URLS = {
   LOCAL: 'http://localhost:5000',
   TEST: 'https://casai.testatozas.in',
