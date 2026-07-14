@@ -69,7 +69,26 @@ const normalizedAllowedOrigins = Array.from(new Set(
   allowedOrigins.flatMap((origin) => withWwwVariants(origin)).filter(Boolean)
 ));
 const allowedOriginSet = new Set(normalizedAllowedOrigins);
-const isOriginAllowed = (origin) => !origin || allowedOriginSet.has(normalizeOrigin(origin));
+// Dev only: phones/tablets on the same Wi-Fi open the app via the machine's LAN IP
+// (e.g. http://192.168.137.1:7760), which can't be listed statically.
+const isPrivateLanHost = (host) => {
+  if (host === 'localhost') return true;
+  if (!isIpLikeHost(host)) return false;
+  const [a, b] = host.split('.').map(Number);
+  return a === 127 || a === 10 || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31);
+};
+const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+  if (allowedOriginSet.has(normalizeOrigin(origin))) return true;
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      return isPrivateLanHost(new URL(origin).hostname.toLowerCase());
+    } catch (_) {
+      return false;
+    }
+  }
+  return false;
+};
 const googleClientIds = Array.from(
   new Set(parseCsv(process.env.GOOGLE_CLIENT_IDS || process.env.GOOGLE_CLIENT_ID))
 );

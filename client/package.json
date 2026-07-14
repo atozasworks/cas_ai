@@ -19,6 +19,7 @@
     "prestart": "node scripts/free-dev-port.js",
     "prebuild": "node scripts/generate-pwa-icons.js",
     "start": "cross-env PORT=7760 react-scripts start",
+    "start:phone": "cross-env PORT=7760 HTTPS=true react-scripts start",
     "build": "react-scripts build"
   },
   "proxy": "http://localhost:5000",

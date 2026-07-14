@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { connectSocket, disconnectSocket, getSocket, joinVehicleRoom, sendLocationUpdate } from '../services/socket';
 import { useAuth } from './AuthContext';
 
@@ -16,6 +17,7 @@ export function SocketProvider({ children }) {
   const [activeVehicleId, setActiveVehicleId] = useState(null);
   const [lastPosition, setLastPosition] = useState(null);
   const gpsIntervalRef = useRef(null);
+  const gpsErrorNotifiedRef = useRef(false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -106,10 +108,24 @@ export function SocketProvider({ children }) {
 
     if (gpsIntervalRef.current) clearInterval(gpsIntervalRef.current);
 
+    const notifyGpsBlocked = (reason) => {
+      if (gpsErrorNotifiedRef.current) return;
+      gpsErrorNotifiedRef.current = true;
+      const insecure = window.location.protocol !== 'https:' && window.location.hostname !== 'localhost';
+      const hint = insecure
+        ? 'GPS needs HTTPS on this device. Open the app with an https:// address.'
+        : 'Enable location permission for this site to receive collision warnings.';
+      toast.error(`Location unavailable: ${reason}. ${hint}`, { duration: 10000 });
+    };
+
     const sendGPS = () => {
-      if (!navigator.geolocation) return;
+      if (!navigator.geolocation) {
+        notifyGpsBlocked('not supported by this browser');
+        return;
+      }
       navigator.geolocation.getCurrentPosition(
         (pos) => {
+          gpsErrorNotifiedRef.current = false;
           const prevHeading = lastPosition?.heading || 0;
           const locationData = {
             vehicleId,
@@ -126,7 +142,10 @@ export function SocketProvider({ children }) {
           setLastPosition(locationData);
           sendLocationUpdate(locationData);
         },
-        (err) => console.error('GPS error:', err.message),
+        (err) => {
+          console.error('GPS error:', err.message);
+          if (err.code === err.PERMISSION_DENIED) notifyGpsBlocked(err.message || 'permission denied');
+        },
         { enableHighAccuracy: true, maximumAge: 2000, timeout: 5000 }
       );
     };
