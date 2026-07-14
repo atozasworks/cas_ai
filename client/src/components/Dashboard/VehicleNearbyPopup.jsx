@@ -95,7 +95,13 @@ function resolveDirection(vehicleNearbyAlert, riskData) {
     if (matchedDirection) return matchedDirection;
   }
 
-  return normalizeDirection(riskData?.assessments?.[0]?.components?.direction);
+  // With a single nearby vehicle the top assessment is necessarily this one.
+  if (riskData?.assessments?.length === 1) {
+    return normalizeDirection(riskData.assessments[0]?.components?.direction);
+  }
+
+  // Otherwise: better no direction than a wrong one from another vehicle.
+  return null;
 }
 
 function buildSuggestion(direction) {

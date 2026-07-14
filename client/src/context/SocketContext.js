@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { connectSocket, disconnectSocket, getSocket, joinVehicleRoom, sendLocationUpdate } from '../services/socket';
+import { haversineMeters, bearingDegrees } from '../utils/helpers';
 import { useAuth } from './AuthContext';
 
 const SocketContext = createContext(null);
@@ -18,6 +19,30 @@ export function SocketProvider({ children }) {
   const [lastPosition, setLastPosition] = useState(null);
   const gpsIntervalRef = useRef(null);
   const gpsErrorNotifiedRef = useRef(false);
+  const lastPositionRef = useRef(null);
+  const compassHeadingRef = useRef(null);
+
+  // Device compass (works even when stationary, e.g. phones on a desk during testing).
+  // 'deviceorientationabsolute' fires on Android Chrome; webkitCompassHeading covers iOS.
+  useEffect(() => {
+    const onOrientation = (e) => {
+      let heading = null;
+      if (typeof e.webkitCompassHeading === 'number') {
+        heading = e.webkitCompassHeading;
+      } else if (e.absolute === true && typeof e.alpha === 'number') {
+        heading = (360 - e.alpha) % 360;
+      }
+      if (heading != null && Number.isFinite(heading)) {
+        compassHeadingRef.current = heading;
+      }
+    };
+    window.addEventListener('deviceorientationabsolute', onOrientation);
+    window.addEventListener('deviceorientation', onOrientation);
+    return () => {
+      window.removeEventListener('deviceorientationabsolute', onOrientation);
+      window.removeEventListener('deviceorientation', onOrientation);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -118,6 +143,22 @@ export function SocketProvider({ children }) {
       toast.error(`Location unavailable: ${reason}. ${hint}`, { duration: 10000 });
     };
 
+    // Best available heading: GPS course while moving > movement-derived bearing
+    // > device compass > last known heading. Never silently defaults to 0 (north),
+    // which made LEFT/RIGHT/FRONT/BACK classification wrong for slow/stationary phones.
+    const pickHeading = (coords) => {
+      if (Number.isFinite(coords.heading) && (coords.speed || 0) > 0.5) return coords.heading;
+      const prev = lastPositionRef.current;
+      if (prev) {
+        const movedMeters = haversineMeters(prev.latitude, prev.longitude, coords.latitude, coords.longitude);
+        if (movedMeters >= 2) {
+          return bearingDegrees(prev.latitude, prev.longitude, coords.latitude, coords.longitude);
+        }
+      }
+      if (compassHeadingRef.current != null) return compassHeadingRef.current;
+      return prev?.heading ?? 0;
+    };
+
     const sendGPS = () => {
       if (!navigator.geolocation) {
         notifyGpsBlocked('not supported by this browser');
@@ -126,19 +167,20 @@ export function SocketProvider({ children }) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           gpsErrorNotifiedRef.current = false;
-          const prevHeading = lastPosition?.heading || 0;
+          const prevHeading = lastPositionRef.current?.heading || 0;
           const locationData = {
             vehicleId,
             userId: user._id || user.id,
             latitude: pos.coords.latitude,
             longitude: pos.coords.longitude,
             speed: (pos.coords.speed || 0) * 3.6,
-            heading: pos.coords.heading || 0,
+            heading: pickHeading(pos.coords),
             acceleration: 0,
             altitude: pos.coords.altitude || 0,
             accuracy: pos.coords.accuracy || 0,
             previousHeading: prevHeading,
           };
+          lastPositionRef.current = locationData;
           setLastPosition(locationData);
           sendLocationUpdate(locationData);
         },
@@ -152,7 +194,7 @@ export function SocketProvider({ children }) {
 
     sendGPS();
     gpsIntervalRef.current = setInterval(sendGPS, 3000);
-  }, [user, lastPosition]);
+  }, [user]);
 
   const stopTracking = useCallback(() => {
     if (gpsIntervalRef.current) {
@@ -163,6 +205,7 @@ export function SocketProvider({ children }) {
     setRiskData(null);
     setNearbyVehicles([]);
     setLastPosition(null);
+    lastPositionRef.current = null;
     setVehicleNearbyAlert(null);
     setZoneAlert(null);
   }, []);
