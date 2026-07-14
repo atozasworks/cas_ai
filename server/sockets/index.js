@@ -63,6 +63,8 @@ function initializeSocket(httpServer) {
       socket.join(`user:${userId}`);
       socket.vehicleId = vehicleId;
       socket.userId = userId;
+      // New tracking session: reset zone dedupe so warnings re-fire every time
+      socket.lastZoneType = null;
       logger.debug(`Vehicle ${vehicleId} joined tracking room`);
     });
 

@@ -167,6 +167,19 @@ export function SocketProvider({ children }) {
     setZoneAlert(null);
   }, []);
 
+  // Closing the warning popup ends the tracking session so the button returns
+  // to "Track". Starting a new session resets everything, so the popup can
+  // appear again on every Track click.
+  const dismissVehicleNearbyAlert = useCallback(() => {
+    setVehicleNearbyAlert(null);
+    stopTracking();
+  }, [stopTracking]);
+
+  const dismissZoneAlert = useCallback(() => {
+    setZoneAlert(null);
+    stopTracking();
+  }, [stopTracking]);
+
   return (
     <SocketContext.Provider value={{
       connected,
@@ -175,9 +188,9 @@ export function SocketProvider({ children }) {
       emergency,
       behaviorAlert,
       vehicleNearbyAlert,
-      dismissVehicleNearbyAlert: () => setVehicleNearbyAlert(null),
+      dismissVehicleNearbyAlert,
       zoneAlert,
-      dismissZoneAlert: () => setZoneAlert(null),
+      dismissZoneAlert,
       activeVehicleId,
       startTracking,
       stopTracking,
