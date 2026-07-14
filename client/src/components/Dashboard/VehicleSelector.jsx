@@ -10,39 +10,19 @@ import {
   VEHICLE_TYPE_LABEL_BY_VALUE,
   getMakesForType,
   getModelsForTypeAndMake,
-  getPlateOptions,
 } from '../../data/vehicleCatalog';
 import './VehicleSelector.css';
 
 const EMPTY_VEHICLE = { plateNumber: '', type: '', make: '', model: '', phone: '' };
 
-const norm = (value) => (value || '').trim().toLowerCase().replace(/[\s_-]+/g, '');
+// Standard Indian format (KA19AB1234) or Bharat series (22BH1234AA)
+const PLATE_REGEX = /^([A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{4}|[0-9]{2}BH[0-9]{4}[A-Z]{1,2})$/;
 
-function fieldMatches(stored, selected) {
-  const a = norm(stored);
-  const b = norm(selected);
-  if (!a || !b) return false;
-  if (a === b) return true;
-  return a.includes(b) || b.includes(a);
-}
-
-function mergeRegisteredVehicles(owned = [], map = []) {
-  const seen = new Set();
-  const merged = [];
-
-  [...owned, ...map].forEach((vehicle) => {
-    const key = vehicle._id || vehicle.id || vehicle.plateNumber;
-    if (!key || seen.has(key)) return;
-    seen.add(key);
-    merged.push(vehicle);
-  });
-
-  return merged;
-}
+const sanitizePlate = (value) =>
+  (value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
 
 export default function VehicleSelector() {
   const [vehicles, setVehicles] = useState([]);
-  const [mapVehicles, setMapVehicles] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newVehicle, setNewVehicle] = useState(EMPTY_VEHICLE);
   const { activeVehicleId, startTracking, stopTracking } = useSocket();
@@ -56,31 +36,15 @@ export default function VehicleSelector() {
     }
   }, []);
 
-  const loadMapVehicles = useCallback(async () => {
-    try {
-      const data = await vehicleAPI.getAllForMap();
-      setMapVehicles(data.vehicles || []);
-    } catch {
-      setMapVehicles([]);
-    }
-  }, []);
-
   useEffect(() => {
     loadVehicles();
-    loadMapVehicles();
-  }, [loadVehicles, loadMapVehicles]);
+  }, [loadVehicles]);
 
   useEffect(() => {
     if (showAdd) {
       loadVehicles();
-      loadMapVehicles();
     }
-  }, [showAdd, loadVehicles, loadMapVehicles]);
-
-  const registeredVehicles = useMemo(
-    () => mergeRegisteredVehicles(vehicles, mapVehicles),
-    [vehicles, mapVehicles]
-  );
+  }, [showAdd, loadVehicles]);
 
   const makeOptions = useMemo(
     () => getMakesForType(newVehicle.type),
@@ -92,30 +56,12 @@ export default function VehicleSelector() {
     [newVehicle.type, newVehicle.make]
   );
 
-  const matchingPlates = useMemo(() => {
-    if (!newVehicle.type || !newVehicle.make || !newVehicle.model) return [];
-
-    const registered = [...new Set(
-      registeredVehicles
-        .filter((v) =>
-          fieldMatches(v.type, newVehicle.type)
-          && fieldMatches(v.make, newVehicle.make)
-          && fieldMatches(v.model, newVehicle.model)
-        )
-        .map((v) => v.plateNumber)
-        .filter(Boolean)
-    )];
-
-    return getPlateOptions(registered);
-  }, [registeredVehicles, newVehicle.type, newVehicle.make, newVehicle.model]);
-
   const handleTypeChange = (label) => {
     setNewVehicle({
       ...newVehicle,
       type: VEHICLE_TYPE_VALUE_BY_LABEL[label] || '',
       make: '',
       model: '',
-      plateNumber: '',
     });
   };
 
@@ -124,7 +70,6 @@ export default function VehicleSelector() {
       ...newVehicle,
       make,
       model: '',
-      plateNumber: '',
     });
   };
 
@@ -132,19 +77,21 @@ export default function VehicleSelector() {
     setNewVehicle({
       ...newVehicle,
       model,
-      plateNumber: '',
     });
   };
 
   const handleAdd = async (e) => {
     e.preventDefault();
+    if (!PLATE_REGEX.test(newVehicle.plateNumber)) {
+      toast.error('Enter a valid registration number (e.g. KA19AB1234)');
+      return;
+    }
     try {
       await vehicleAPI.create(newVehicle);
       toast.success('Vehicle added');
       setNewVehicle(EMPTY_VEHICLE);
       setShowAdd(false);
       loadVehicles();
-      loadMapVehicles();
     } catch (err) {
       toast.error(err?.message || 'Failed to add vehicle');
     }
@@ -157,7 +104,6 @@ export default function VehicleSelector() {
       toast.success('Vehicle deleted');
       if (activeVehicleId === id) stopTracking();
       loadVehicles();
-      loadMapVehicles();
     } catch (err) {
       toast.error(err?.message || 'Failed to delete vehicle');
     }
@@ -167,13 +113,6 @@ export default function VehicleSelector() {
 
   const makeHint = !newVehicle.type ? 'Select Vehicle Type first' : 'No makes found';
   const modelHint = !newVehicle.make ? 'Select Make first' : 'No models found';
-  const plateHint = !newVehicle.type
-    ? 'Select Vehicle Type first'
-    : !newVehicle.make
-      ? 'Select Make first'
-      : !newVehicle.model
-        ? 'Select Model first'
-        : 'Type a new plate number (e.g. KA01AB1234)';
 
   return (
     <div style={styles.container}>
@@ -212,14 +151,19 @@ export default function VehicleSelector() {
             emptyMessage={modelHint}
           />
 
-          <SearchableDropdown
-            options={matchingPlates}
+          <input
+            type="text"
+            placeholder="Plate Number (e.g. KA19AB1234)"
             value={newVehicle.plateNumber}
-            onChange={(plateNumber) => setNewVehicle({ ...newVehicle, plateNumber })}
-            placeholder="Select or type Plate Number"
+            onChange={(e) => setNewVehicle({ ...newVehicle, plateNumber: sanitizePlate(e.target.value) })}
             required
-            allowCustom
-            emptyMessage={plateHint}
+            pattern="([A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{4}|[0-9]{2}BH[0-9]{4}[A-Z]{1,2})"
+            title="Enter a valid registration number, e.g. KA19AB1234"
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            maxLength={10}
+            style={{ ...styles.input, textTransform: 'uppercase' }}
           />
 
           <input
