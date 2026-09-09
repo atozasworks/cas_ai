@@ -50,6 +50,17 @@ api.interceptors.response.use(
   }
 );
 
+const parseSameOriginJson = async (response) => {
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data?.message || `Request failed (${response.status})`);
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+  return data;
+};
+
 export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   requestOtp: (data) => api.post('/auth/request-otp', data),
@@ -60,6 +71,16 @@ export const authAPI = {
   getMe: () => api.get('/auth/me'),
   updateProfile: (data) => api.patch('/auth/profile', data),
   updatePreferences: (data) => api.patch('/auth/preferences', data),
+  getAtozasMe: () => fetch('/api/auth/atozas/me', {
+    method: 'GET',
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+  }).then(parseSameOriginJson),
+  atozasLogout: () => fetch('/api/auth/logout', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+  }).then(parseSameOriginJson),
 };
 
 export const vehicleAPI = {

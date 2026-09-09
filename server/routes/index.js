@@ -17,10 +17,21 @@ router.get('/health', (req, res) => {
 });
 
 router.get('/app-config', (req, res) => {
+  let refererOrigin = '';
+  try {
+    refererOrigin = req.get('referer') ? new URL(req.get('referer')).origin : '';
+  } catch (_) {
+    refererOrigin = '';
+  }
+  const requestOrigin = req.get('origin')
+    || refererOrigin
+    || `${req.protocol}://${req.get('host')}`;
   res.json({
     success: true,
     apiUrl: config.publicClient.apiUrl || '/api/v1',
-    googleClientId: config.publicClient.googleClientId || '',
+    googleClientId: config.publicClient.resolveGoogleClientIdForOrigin(requestOrigin) || '',
+    atozasSsoEnabled: config.atozas.enabled === true,
+    atozasAutoRedirect: config.atozas.enabled === true && config.atozas.autoRedirect === true,
   });
 });
 

@@ -27,6 +27,8 @@ const decodeJwtPayload = (token) => {
 const signToken = (id) =>
   jwt.sign({ id }, config.jwt.secret, { expiresIn: config.jwt.expiresIn });
 
+exports.signToken = signToken;
+
 const sendTokenResponse = (user, statusCode, res) => {
   const token = signToken(user._id);
   const safeUser = user.toSafeObject ? user.toSafeObject() : user;

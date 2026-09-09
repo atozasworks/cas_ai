@@ -98,6 +98,20 @@ const publicGoogleClientId =
   || process.env.REACT_APP_GOOGLE_CLIENT_ID
   || process.env.GOOGLE_CLIENT_ID
   || '';
+const googleClientIdByOrigin = {};
+String(process.env.PUBLIC_GOOGLE_CLIENT_ID_BY_ORIGIN || '')
+  .split(',')
+  .forEach((pair) => {
+    const eq = pair.indexOf('=');
+    if (eq <= 0) return;
+    const origin = pair.slice(0, eq).trim().replace(/\/+$/, '');
+    const clientId = pair.slice(eq + 1).trim();
+    if (origin && clientId) googleClientIdByOrigin[origin] = clientId;
+  });
+const resolveGoogleClientIdForOrigin = (origin) => {
+  const key = String(origin || '').trim().replace(/\/+$/, '');
+  return googleClientIdByOrigin[key] || publicGoogleClientId || '';
+};
 
 const config = {
   server: {
@@ -164,6 +178,33 @@ const config = {
   publicClient: {
     apiUrl: String(publicApiUrl || '/api/v1').trim(),
     googleClientId: String(publicGoogleClientId || '').trim(),
+    resolveGoogleClientIdForOrigin,
+  },
+
+  atozas: {
+    enabled: process.env.ATOZAS_SSO_ENABLED === 'true',
+    autoRedirect: process.env.ATOZAS_AUTO_REDIRECT === 'true',
+    issuer: String(process.env.ATOZAS_ISSUER || '').trim().replace(/\/+$/, ''),
+    clientId: String(process.env.ATOZAS_CLIENT_ID || '').trim(),
+    clientSecret: String(process.env.ATOZAS_CLIENT_SECRET || '').trim(),
+    redirectUri: String(process.env.ATOZAS_REDIRECT_URI || '').trim(),
+    scope: String(process.env.ATOZAS_SCOPE || 'openid email profile').trim(),
+    authorizeUrl: String(process.env.ATOZAS_AUTHORIZE_URL || '').trim(),
+    tokenUrl: String(process.env.ATOZAS_TOKEN_URL || '').trim(),
+    userinfoUrl: String(process.env.ATOZAS_USERINFO_URL || '').trim(),
+    revokeUrl: String(process.env.ATOZAS_REVOKE_URL || '').trim(),
+    tokenAuthStyle: String(process.env.ATOZAS_TOKEN_AUTH_STYLE || 'body').trim().toLowerCase(),
+    homepageKey: String(process.env.ATOZAS_HOMEPAGE_KEY || '').trim(),
+    sessionCookieName: String(process.env.ATOZAS_SESSION_COOKIE_NAME || 'cas_atozas_sid').trim(),
+    sessionSecret: String(process.env.ATOZAS_SESSION_SECRET || '').trim(),
+    sessionMaxAgeDays: parseInt(process.env.ATOZAS_SESSION_MAX_AGE_DAYS, 10) || 30,
+    sessionCollection: String(process.env.ATOZAS_SESSION_COLLECTION || 'atozas_sessions').trim(),
+    cookieSecure: process.env.ATOZAS_COOKIE_SECURE === 'true'
+      ? true
+      : process.env.ATOZAS_COOKIE_SECURE === 'false'
+        ? false
+        : process.env.NODE_ENV === 'production',
+    cookieSameSite: String(process.env.ATOZAS_COOKIE_SAMESITE || 'lax').trim().toLowerCase(),
   },
 
   cors: {

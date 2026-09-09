@@ -12,6 +12,8 @@ const APP_CONFIG_ENDPOINT = `${normalizeApiUrl(FALLBACK_API_URL)}/app-config`;
 let runtimeConfig = {
   apiUrl: normalizeApiUrl(FALLBACK_API_URL),
   googleClientId: FALLBACK_GOOGLE_CLIENT_ID,
+  atozasSsoEnabled: false,
+  atozasAutoRedirect: false,
 };
 
 let loadPromise = null;
@@ -33,6 +35,8 @@ export const loadRuntimeConfig = async () => {
       runtimeConfig = {
         apiUrl: normalizeApiUrl(data?.apiUrl || runtimeConfig.apiUrl),
         googleClientId: String(data?.googleClientId || runtimeConfig.googleClientId || '').trim(),
+        atozasSsoEnabled: data?.atozasSsoEnabled === true,
+        atozasAutoRedirect: data?.atozasAutoRedirect === true,
       };
     } catch (_) {
       // Keep fallback values if runtime config is unavailable.
