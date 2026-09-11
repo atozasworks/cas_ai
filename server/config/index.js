@@ -185,7 +185,10 @@ const config = {
     enabled: process.env.ATOZAS_SSO_ENABLED === 'true',
     autoRedirect: process.env.ATOZAS_AUTO_REDIRECT === 'true',
     issuer: String(process.env.ATOZAS_ISSUER || '').trim().replace(/\/+$/, ''),
-    clientId: String(process.env.ATOZAS_CLIENT_ID || '').trim(),
+    // Production IdP registers `ucasaapp`. `ucasapp` is a common env typo.
+    clientId: String(process.env.ATOZAS_CLIENT_ID || '').trim() === 'ucasapp'
+      ? 'ucasaapp'
+      : String(process.env.ATOZAS_CLIENT_ID || '').trim(),
     clientSecret: String(process.env.ATOZAS_CLIENT_SECRET || '').trim(),
     redirectUri: String(process.env.ATOZAS_REDIRECT_URI || '').trim(),
     scope: String(process.env.ATOZAS_SCOPE || 'openid email profile').trim(),

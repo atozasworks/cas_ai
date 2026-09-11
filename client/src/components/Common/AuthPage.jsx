@@ -57,7 +57,8 @@ export default function AuthPage({ initialMode = 'login' }) {
   const [form, setForm] = useState({ name: '', email: '', phone: '', otp: '' });
   const [otpSent, setOtpSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [googleClientId, setGoogleClientId] = useState(() => getRuntimeConfig().googleClientId || '');
+  const [googleClientId, setGoogleClientId] = useState('');
+  const [runtimeReady, setRuntimeReady] = useState(false);
   const [atozasSsoEnabled, setAtozasSsoEnabled] = useState(() => getRuntimeConfig().atozasSsoEnabled === true);
   const [atozasAutoRedirect, setAtozasAutoRedirect] = useState(() => getRuntimeConfig().atozasAutoRedirect === true);
   const [signupStep, setSignupStep] = useState(SIGNUP_STEPS.DETAILS);
@@ -103,16 +104,20 @@ export default function AuthPage({ initialMode = 'login' }) {
       setGoogleClientId(cfg.googleClientId || '');
       setAtozasSsoEnabled(cfg.atozasSsoEnabled === true);
       setAtozasAutoRedirect(cfg.atozasAutoRedirect === true);
+      setRuntimeReady(true);
     });
     return () => { active = false; };
   }, []);
 
   useEffect(() => {
     const ssoError = searchParams.get('sso_error');
-    if (ssoError) {
-      toast.error('ATOZAS sign-in failed. Please try again.');
-    }
-  }, [searchParams]);
+    if (!ssoError) return;
+    toast.error('ATOZAS sign-in failed. Please try again.');
+    const next = new URLSearchParams(searchParams);
+    next.delete('sso_error');
+    const query = next.toString();
+    navigate({ pathname: '/login', search: query ? `?${query}` : '' }, { replace: true });
+  }, [searchParams, navigate]);
 
   useEffect(() => {
     if (!isLogin || !atozasSsoEnabled || !atozasAutoRedirect) return;
@@ -122,7 +127,7 @@ export default function AuthPage({ initialMode = 'login' }) {
 
   /* ── Initialize GIS and render Google button ── */
   useEffect(() => {
-    if (!googleClientId || !isGoogleOriginAllowed()) return;
+    if (!runtimeReady || !googleClientId || !isGoogleOriginAllowed()) return;
     // Show on login page OR signup details step
     const showOnLogin = isLogin;
     const showOnSignup = !isLogin && signupStep === SIGNUP_STEPS.DETAILS;
@@ -167,7 +172,7 @@ export default function AuthPage({ initialMode = 'login' }) {
     });
 
     return () => { cancelled = true; };
-  }, [isLogin, signupStep, googleClientId, handleGoogleResponse]);
+  }, [runtimeReady, isLogin, signupStep, googleClientId, handleGoogleResponse]);
 
   /* ───── LOGIN HANDLER ───── */
   const handleLogin = async (e) => {

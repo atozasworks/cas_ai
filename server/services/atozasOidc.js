@@ -101,6 +101,8 @@ const discoveryUrlsForIssuer = (issuer) => {
   const urls = [];
   if (!issuer) return urls;
   urls.push(`${issuer}/.well-known/openid-configuration`);
+  urls.push(`${issuer}/sso`);
+  urls.push(`${issuer}/sso/`);
   try {
     const parsed = new URL(issuer);
     const origin = parsed.origin;
@@ -108,10 +110,30 @@ const discoveryUrlsForIssuer = (issuer) => {
       urls.push(`${origin}/.well-known/openid-configuration`);
     }
     urls.push(`${origin}${parsed.pathname}/.well-known/openid-configuration`.replace(/\/{2,}/g, '/').replace(':/', '://'));
+    urls.push(`${origin}/sso`);
+    urls.push(`${origin}/sso/`);
   } catch (_) {
     // Issuer is not a valid URL; skip origin-based discovery.
   }
   return [...new Set(urls)];
+};
+
+const ssoSiblingUrl = (endpointUrl, name) => {
+  try {
+    const parsed = new URL(endpointUrl);
+    const basePath = parsed.pathname.replace(/\/(?:authorize|token|userinfo|revoke)\/?$/i, '');
+    return `${parsed.origin}${basePath}/${name}`;
+  } catch (_) {
+    return '';
+  }
+};
+
+const sameEndpointHost = (left, right) => {
+  try {
+    return new URL(left).host === new URL(right).host;
+  } catch (_) {
+    return false;
+  }
 };
 
 const fetchJson = async (url, options = {}) => {
@@ -134,8 +156,13 @@ const discoverEndpoints = async () => {
 
   const atozas = config.atozas;
   const discovered = {};
+  const tokenHostMismatch = Boolean(
+    atozas.authorizeUrl
+    && atozas.tokenUrl
+    && !sameEndpointHost(atozas.authorizeUrl, atozas.tokenUrl)
+  );
 
-  const needsDiscovery = !atozas.authorizeUrl || !atozas.tokenUrl || !atozas.userinfoUrl;
+  const needsDiscovery = !atozas.authorizeUrl || !atozas.tokenUrl || !atozas.userinfoUrl || tokenHostMismatch;
   if (needsDiscovery && atozas.issuer) {
     for (const url of discoveryUrlsForIssuer(atozas.issuer)) {
       try {
@@ -155,11 +182,24 @@ const discoverEndpoints = async () => {
   }
 
   const issuer = atozas.issuer;
+  const authorize = atozas.authorizeUrl
+    || discovered.authorization_endpoint
+    || (issuer ? `${issuer}/sso/authorize` : '');
+  const tokenFromEnv = atozas.tokenUrl;
   const endpoints = {
-    authorize: atozas.authorizeUrl || discovered.authorization_endpoint || (issuer ? `${issuer}/oauth2/authorize` : ''),
-    token: atozas.tokenUrl || discovered.token_endpoint || (issuer ? `${issuer}/oauth2/token` : ''),
-    userinfo: atozas.userinfoUrl || discovered.userinfo_endpoint || (issuer ? `${issuer}/oauth2/userinfo` : ''),
-    revoke: atozas.revokeUrl || discovered.revocation_endpoint || '',
+    authorize,
+    token: (!tokenHostMismatch && tokenFromEnv)
+      || discovered.token_endpoint
+      || ssoSiblingUrl(authorize, 'token')
+      || (issuer ? `${issuer}/sso/token` : ''),
+    userinfo: atozas.userinfoUrl
+      || discovered.userinfo_endpoint
+      || ssoSiblingUrl(authorize, 'userinfo')
+      || (issuer ? `${issuer}/sso/userinfo` : ''),
+    revoke: atozas.revokeUrl
+      || discovered.revocation_endpoint
+      || ssoSiblingUrl(authorize, 'revoke')
+      || '',
   };
 
   cachedEndpoints = endpoints;
@@ -228,7 +268,11 @@ const exchangeCode = async ({ code, verifier }) => {
   });
 
   if (!result.ok || !result.body?.access_token) {
-    logger.warn('ATOZAS token exchange failed', { status: result.status });
+    logger.warn('ATOZAS token exchange failed', {
+      status: result.status,
+      error: result.body?.error || '',
+      hint: result.body?.error_description || '',
+    });
     throw new Error('ATOZAS token exchange failed');
   }
 
