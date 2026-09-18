@@ -86,7 +86,9 @@ function AppRoutes() {
         <Route path="/home" element={
           isAuthenticated ? <DashboardPage /> : <LandingPage />
         } />
-        <Route path="/" element={<Navigate to="/home" replace />} />
+        <Route path="/" element={
+          isAuthenticated ? <Navigate to="/home" replace /> : <LandingPage />
+        } />
         <Route path="/track" element={
           <PrivateRoute><TrackRoute /></PrivateRoute>
         } />

@@ -59,7 +59,7 @@ export default function AuthPage({ initialMode = 'login' }) {
   const [submitting, setSubmitting] = useState(false);
   const [googleClientId, setGoogleClientId] = useState('');
   const [runtimeReady, setRuntimeReady] = useState(false);
-  const [atozasSsoEnabled, setAtozasSsoEnabled] = useState(() => getRuntimeConfig().atozasSsoEnabled === true);
+  const [atozasSsoEnabled, setAtozasSsoEnabled] = useState(true);
   const [atozasAutoRedirect, setAtozasAutoRedirect] = useState(() => getRuntimeConfig().atozasAutoRedirect === true);
   const [signupStep, setSignupStep] = useState(SIGNUP_STEPS.DETAILS);
   const [otpVerified, setOtpVerified] = useState(false);
@@ -102,7 +102,7 @@ export default function AuthPage({ initialMode = 'login' }) {
     loadRuntimeConfig().then((cfg) => {
       if (!active) return;
       setGoogleClientId(cfg.googleClientId || '');
-      setAtozasSsoEnabled(cfg.atozasSsoEnabled === true);
+      setAtozasSsoEnabled(cfg.atozasSsoEnabled !== false);
       setAtozasAutoRedirect(cfg.atozasAutoRedirect === true);
       setRuntimeReady(true);
     });
