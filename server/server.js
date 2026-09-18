@@ -131,21 +131,24 @@ async function connectDBWithRetry() {
 
 async function start() {
   try {
-    await connectRedis();
-    initializeSocket(server);
-
     server.on('error', (err) => {
       logger.error('HTTP server failed to start:', err);
       process.exit(1);
     });
 
-    server.listen(config.server.port, () => {
-      logger.info(`╔══════════════════════════════════════════╗`);
-      logger.info(`║  CAS Server running on port ${config.server.port}          ║`);
-      logger.info(`║  Environment: ${config.server.env.padEnd(26)}║`);
-      logger.info(`╚══════════════════════════════════════════╝`);
+    // Bind HTTP first so nginx never 502s while Redis/Mongo are still connecting.
+    await new Promise((resolve) => {
+      server.listen(config.server.port, '0.0.0.0', () => {
+        logger.info(`╔══════════════════════════════════════════╗`);
+        logger.info(`║  CAS Server running on port ${config.server.port}          ║`);
+        logger.info(`║  Environment: ${config.server.env.padEnd(26)}║`);
+        logger.info(`╚══════════════════════════════════════════╝`);
+        resolve();
+      });
     });
 
+    await connectRedis();
+    initializeSocket(server);
     await connectDBWithRetry();
   } catch (err) {
     logger.error('Server startup failed:', err);

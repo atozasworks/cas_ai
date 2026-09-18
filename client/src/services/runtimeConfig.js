@@ -1,5 +1,6 @@
 const FALLBACK_API_URL = String(process.env.REACT_APP_API_URL || '/api/v1').trim();
 const FALLBACK_GOOGLE_CLIENT_ID = String(process.env.REACT_APP_GOOGLE_CLIENT_ID || '').trim();
+const FALLBACK_GOOGLE_MAPS_API_KEY = String(process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '').trim();
 
 const normalizeApiUrl = (value) => {
   const url = String(value || '').trim();
@@ -12,6 +13,7 @@ const APP_CONFIG_ENDPOINT = `${normalizeApiUrl(FALLBACK_API_URL)}/app-config`;
 let runtimeConfig = {
   apiUrl: normalizeApiUrl(FALLBACK_API_URL),
   googleClientId: FALLBACK_GOOGLE_CLIENT_ID,
+  googleMapsApiKey: FALLBACK_GOOGLE_MAPS_API_KEY,
   atozasSsoEnabled: false,
   atozasAutoRedirect: false,
 };
@@ -35,6 +37,7 @@ export const loadRuntimeConfig = async () => {
       runtimeConfig = {
         apiUrl: normalizeApiUrl(data?.apiUrl || runtimeConfig.apiUrl),
         googleClientId: String(data?.googleClientId || runtimeConfig.googleClientId || '').trim(),
+        googleMapsApiKey: String(data?.googleMapsApiKey || runtimeConfig.googleMapsApiKey || '').trim(),
         atozasSsoEnabled: data?.atozasSsoEnabled === true,
         atozasAutoRedirect: data?.atozasAutoRedirect === true,
       };

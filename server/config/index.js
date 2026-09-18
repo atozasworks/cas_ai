@@ -1,7 +1,18 @@
 const dotenv = require('dotenv');
+const fs = require('fs');
 const path = require('path');
 
-dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
+const envCandidates = [
+  path.resolve(__dirname, '..', '.env'),
+  path.resolve(process.cwd(), '.env'),
+  path.resolve(__dirname, '.env'),
+];
+const envPath = envCandidates.find((candidate) => fs.existsSync(candidate));
+if (envPath) {
+  dotenv.config({ path: envPath });
+} else {
+  dotenv.config();
+}
 
 const parseCsv = (value) =>
   String(value || '')
@@ -173,11 +184,13 @@ const config = {
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
     clientIds: googleClientIds,
+    mapsApiKey: String(process.env.GOOGLE_MAPS_API_KEY || '').trim(),
   },
 
   publicClient: {
     apiUrl: String(publicApiUrl || '/api/v1').trim(),
     googleClientId: String(publicGoogleClientId || '').trim(),
+    googleMapsApiKey: String(process.env.GOOGLE_MAPS_API_KEY || '').trim(),
     resolveGoogleClientIdForOrigin,
   },
 

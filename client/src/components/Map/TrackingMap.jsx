@@ -1,8 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+import ReactLeafletGoogleLayer from 'react-leaflet-google-layer';
 import L from 'leaflet';
 import { useSocket } from '../../context/SocketContext';
+import { getRuntimeConfig } from '../../services/runtimeConfig';
 import { getRiskColor, formatDistance, formatSpeed } from '../../utils/helpers';
+
+function MapBaseLayer() {
+  const apiKey = getRuntimeConfig().googleMapsApiKey;
+  if (apiKey) {
+    return <ReactLeafletGoogleLayer apiKey={apiKey} type="roadmap" />;
+  }
+  return (
+    <TileLayer
+      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+      url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+      maxZoom={20}
+    />
+  );
+}
 
 const nearbyIcon = (risk) => L.divIcon({
   className: '',
@@ -118,10 +134,7 @@ export default function TrackingMap({ userName, activeVehicle, vehicles = [], al
         style={{ width: '100%', height: '100%', borderRadius: 12 }}
         zoomControl={false}
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <MapBaseLayer />
         <MapUpdater position={position} />
 
         {/* My Location Marker – shows vehicle icon when a vehicle is active */}

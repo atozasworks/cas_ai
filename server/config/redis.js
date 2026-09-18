@@ -5,11 +5,23 @@ const logger = require('../middleware/logger');
 let redisClient = null;
 let redisSub = null;
 
+const REDIS_CONNECT_TIMEOUT_MS = parseInt(process.env.REDIS_CONNECT_TIMEOUT_MS, 10) || 2000;
+
+const withTimeout = (promise, ms, label) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    }),
+  ]);
+
 const createRedisClient = (label = 'primary') => {
   const client = new Redis({
     host: config.redis.host,
     port: config.redis.port,
     password: config.redis.password,
+    family: 4,
+    connectTimeout: REDIS_CONNECT_TIMEOUT_MS,
     retryStrategy: (times) => {
       if (times > config.redis.maxRetries) {
         logger.error(`Redis ${label}: max retries exceeded`);
@@ -36,8 +48,8 @@ const connectRedis = async () => {
   try {
     pub = createRedisClient('primary');
     sub = createRedisClient('subscriber');
-    await pub.connect();
-    await sub.connect();
+    await withTimeout(pub.connect(), REDIS_CONNECT_TIMEOUT_MS, 'Redis primary connect');
+    await withTimeout(sub.connect(), REDIS_CONNECT_TIMEOUT_MS, 'Redis subscriber connect');
     redisClient = pub;
     redisSub = sub;
     logger.info('Redis clients initialized');
