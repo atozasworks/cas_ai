@@ -346,43 +346,45 @@ exports.handleAtozasCallback = asyncHandler(async (req, res) => {
     return fail('provider_error', String(callbackParam(req, 'error')));
   }
 
-  let pending = null;
+  let pendingFromQuery = null;
   for (const candidate of stateCandidates) {
-    pending = decodeSignedState(candidate);
-    if (pending) break;
-  }
-  if (!pending) {
-    pending = decodeSignedState(cookieState) || decodeSignedState(sessionState);
-  }
-  if (!pending) {
-    pending = await loadOidcFlow({
-      keys: [...stateCandidates, cookieState, sessionState],
-      sessionFlow: req.session?.atozasOidc,
-    });
+    pendingFromQuery = decodeSignedState(candidate);
+    if (pendingFromQuery) break;
   }
 
-  const returnTo = sanitizeReturnTo(pending?.returnTo || req.session?.atozasOidc?.returnTo, '/home');
+  const storedFlow = await loadOidcFlow({
+    keys: [
+      ...(pendingFromQuery?.state ? [pendingFromQuery.state] : []),
+      ...stateCandidates,
+      cookieState,
+      sessionState,
+    ],
+    sessionFlow: req.session?.atozasOidc,
+  });
+
+  const pending = pendingFromQuery || decodeSignedState(cookieState) || decodeSignedState(sessionState) || storedFlow;
+  const returnTo = sanitizeReturnTo(
+    storedFlow?.returnTo || pending?.returnTo || req.session?.atozasOidc?.returnTo,
+    '/home'
+  );
   const code = readAuthCode(req);
   if (!code) {
-    return fail(pending ? 'missing_code' : 'invalid_state', 'missing_code_or_flow');
+    return fail(pendingFromQuery || storedFlow ? 'missing_code' : 'invalid_state', 'missing_code_or_flow');
   }
+
+  // Only send PKCE when this callback's state is ours. Leftover cookies must not
+  // attach a verifier to an IdP-initiated one-time authorization code.
+  const verifier = pendingFromQuery?.verifier || (pendingFromQuery && storedFlow?.verifier) || '';
 
   let tokens;
   try {
     tokens = await exchangeCode({
       code,
-      verifier: pending?.verifier,
+      verifier: verifier || undefined,
+      req,
     });
   } catch (_) {
-    if (pending?.verifier) {
-      try {
-        tokens = await exchangeCode({ code });
-      } catch (__) {
-        return fail('token_exchange');
-      }
-    } else {
-      return fail('token_exchange');
-    }
+    return fail('token_exchange');
   }
 
   let profile;
@@ -405,25 +407,28 @@ exports.handleAtozasCallback = asyncHandler(async (req, res) => {
   }
 
   try {
-    if (req.session) {
-      delete req.session.atozasOidc;
-      req.session.atozas = {
-        userId: String(result.user._id),
-        email: result.user.email,
-        tokens: {
-          accessToken: tokens.accessToken,
-          refreshToken: tokens.refreshToken,
-          idToken: tokens.idToken,
-        },
-      };
-      await saveSession(req);
+    if (!req.session) {
+      return fail('session');
     }
-    if (pending?.state) {
-      await AtozasOidcFlow.deleteOne({ _id: pending.state }).catch(() => {});
+    delete req.session.atozasOidc;
+    req.session.atozas = {
+      userId: String(result.user._id),
+      email: result.user.email,
+      tokens: {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        idToken: tokens.idToken,
+      },
+    };
+    await saveSession(req);
+    const flowId = pendingFromQuery?.state || storedFlow?.state || pending?.state;
+    if (flowId) {
+      await AtozasOidcFlow.deleteOne({ _id: flowId }).catch(() => {});
     }
     clearFlowCookie(req, res);
   } catch (err) {
     logger.warn('ATOZAS session finalize failed', { reason: err.message });
+    return fail('session');
   }
 
   logger.info('ATOZAS login completed', {

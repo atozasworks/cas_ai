@@ -118,22 +118,98 @@ const discoveryUrlsForIssuer = (issuer) => {
   return [...new Set(urls)];
 };
 
-const ssoSiblingUrl = (endpointUrl, name) => {
+const ENDPOINT_NAME_RE = /\/(authorize|token|userinfo|revoke)(?:\.php)?\/?$/i;
+const LIVE_IDP_BASE = 'https://atozasindia.in/sso';
+const TEST_IDP_BASE = 'https://testatozas.in/atozaswebsite/sso';
+
+const hostnameOf = (value) => {
   try {
-    const parsed = new URL(endpointUrl);
-    const basePath = parsed.pathname.replace(/\/(?:authorize|token|userinfo|revoke)\/?$/i, '');
-    return `${parsed.origin}${basePath}/${name}`;
+    return new URL(value).hostname.toLowerCase().replace(/^www\./, '');
   } catch (_) {
     return '';
   }
 };
 
-const sameEndpointHost = (left, right) => {
-  try {
-    return new URL(left).host === new URL(right).host;
-  } catch (_) {
-    return false;
+const isSelfHostedIdpUrl = (value) => {
+  const host = hostnameOf(value);
+  if (!host) return false;
+  if (host === 'ucasaapp.com') return true;
+  if (host === 'casai.testatozas.in') return true;
+  if (host === 'localhost' || host === '127.0.0.1') return true;
+  return false;
+};
+
+const isTrustedIdpUrl = (value) => {
+  const host = hostnameOf(value);
+  return host === 'atozasindia.in' || host === 'testatozas.in';
+};
+
+const idpBaseForUrl = (value) => {
+  const host = hostnameOf(value);
+  if (host === 'testatozas.in') return TEST_IDP_BASE;
+  if (host === 'atozasindia.in') return LIVE_IDP_BASE;
+  if (host === 'casai.testatozas.in') return TEST_IDP_BASE;
+  if (host === 'ucasaapp.com') return LIVE_IDP_BASE;
+  return '';
+};
+
+const canonicalIdpBase = () => {
+  const candidates = [
+    config.atozas.issuer,
+    config.atozas.authorizeUrl,
+    config.atozas.tokenUrl,
+    config.atozas.userinfoUrl,
+  ];
+  for (const candidate of candidates) {
+    const base = idpBaseForUrl(candidate);
+    if (base && isTrustedIdpUrl(candidate)) return base;
   }
+  for (const candidate of candidates) {
+    const base = idpBaseForUrl(candidate);
+    if (base) return base;
+  }
+  if (config.server.isProduction) return LIVE_IDP_BASE;
+  return TEST_IDP_BASE;
+};
+
+const ssoSiblingUrl = (endpointUrl, name) => {
+  try {
+    const parsed = new URL(endpointUrl);
+    const basePath = parsed.pathname.replace(ENDPOINT_NAME_RE, '') || '/sso';
+    const usePhp = /\.php$/i.test(parsed.pathname);
+    return `${parsed.origin}${basePath}/${name}${usePhp ? '.php' : ''}`;
+  } catch (_) {
+    return '';
+  }
+};
+
+const phpVariants = (url) => {
+  const value = String(url || '').trim();
+  if (!value) return [];
+  try {
+    const parsed = new URL(value);
+    const path = parsed.pathname.replace(/\/+$/, '') || '/';
+    const variants = new Set([value.replace(/\/+$/, '')]);
+    if (/\.php$/i.test(path)) {
+      parsed.pathname = path.replace(/\.php$/i, '');
+      variants.add(parsed.toString().replace(/\/+$/, ''));
+    } else if (ENDPOINT_NAME_RE.test(path)) {
+      parsed.pathname = `${path}.php`;
+      variants.add(parsed.toString().replace(/\/+$/, ''));
+    }
+    return [...variants];
+  } catch (_) {
+    return [value];
+  }
+};
+
+const pickTrustedUrl = (urls, fallback) => {
+  const list = urls.map((item) => String(item || '').trim()).filter(Boolean);
+  const trusted = list.find((item) => isTrustedIdpUrl(item) && !isSelfHostedIdpUrl(item));
+  if (trusted) return trusted;
+  const notSelf = list.find((item) => !isSelfHostedIdpUrl(item));
+  if (notSelf) return notSelf;
+  return fallback || '';
 };
 
 const fetchJson = async (url, options = {}) => {
@@ -155,16 +231,16 @@ const discoverEndpoints = async () => {
   }
 
   const atozas = config.atozas;
+  const idpBase = canonicalIdpBase();
   const discovered = {};
-  const tokenHostMismatch = Boolean(
-    atozas.authorizeUrl
-    && atozas.tokenUrl
-    && !sameEndpointHost(atozas.authorizeUrl, atozas.tokenUrl)
-  );
+  const discoveryIssuer = isTrustedIdpUrl(atozas.issuer) ? atozas.issuer : idpBase;
+  const needsDiscovery = !atozas.authorizeUrl || !atozas.tokenUrl || !atozas.userinfoUrl
+    || isSelfHostedIdpUrl(atozas.authorizeUrl)
+    || isSelfHostedIdpUrl(atozas.tokenUrl)
+    || isSelfHostedIdpUrl(atozas.userinfoUrl);
 
-  const needsDiscovery = !atozas.authorizeUrl || !atozas.tokenUrl || !atozas.userinfoUrl || tokenHostMismatch;
-  if (needsDiscovery && atozas.issuer) {
-    for (const url of discoveryUrlsForIssuer(atozas.issuer)) {
+  if (needsDiscovery && discoveryIssuer) {
+    for (const url of discoveryUrlsForIssuer(discoveryIssuer)) {
       try {
         const result = await fetchJson(url, { method: 'GET' });
         if (result.ok && result.body && typeof result.body === 'object') {
@@ -181,27 +257,48 @@ const discoverEndpoints = async () => {
     }
   }
 
-  const issuer = atozas.issuer;
-  const authorize = atozas.authorizeUrl
-    || discovered.authorization_endpoint
-    || (issuer ? `${issuer}/sso/authorize` : '');
-  const tokenFromEnv = atozas.tokenUrl;
-  const endpoints = {
-    authorize,
-    token: (!tokenHostMismatch && tokenFromEnv)
-      || discovered.token_endpoint
-      || ssoSiblingUrl(authorize, 'token')
-      || (issuer ? `${issuer}/sso/token` : ''),
-    userinfo: atozas.userinfoUrl
-      || discovered.userinfo_endpoint
-      || ssoSiblingUrl(authorize, 'userinfo')
-      || (issuer ? `${issuer}/sso/userinfo` : ''),
-    revoke: atozas.revokeUrl
-      || discovered.revocation_endpoint
-      || ssoSiblingUrl(authorize, 'revoke')
-      || '',
-  };
+  const authorize = pickTrustedUrl([
+    atozas.authorizeUrl,
+    discovered.authorization_endpoint,
+    `${idpBase}/authorize.php`,
+    `${idpBase}/authorize`,
+  ], `${idpBase}/authorize.php`);
 
+  const token = pickTrustedUrl([
+    atozas.tokenUrl,
+    discovered.token_endpoint,
+    ssoSiblingUrl(authorize, 'token'),
+    `${idpBase}/token.php`,
+    `${idpBase}/token`,
+  ], `${idpBase}/token.php`);
+
+  const userinfo = pickTrustedUrl([
+    atozas.userinfoUrl,
+    discovered.userinfo_endpoint,
+    ssoSiblingUrl(authorize, 'userinfo'),
+    `${idpBase}/userinfo.php`,
+    `${idpBase}/userinfo`,
+  ], `${idpBase}/userinfo.php`);
+
+  const revoke = pickTrustedUrl([
+    atozas.revokeUrl,
+    discovered.revocation_endpoint,
+    ssoSiblingUrl(authorize, 'revoke'),
+    `${idpBase}/revoke.php`,
+    `${idpBase}/revoke`,
+  ], '');
+
+  if (
+    isSelfHostedIdpUrl(atozas.authorizeUrl)
+    || isSelfHostedIdpUrl(atozas.tokenUrl)
+    || isSelfHostedIdpUrl(atozas.issuer)
+  ) {
+    logger.warn('ATOZAS IdP URLs pointed at this app; using canonical SSO issuer', {
+      issuer: idpBase,
+    });
+  }
+
+  const endpoints = { authorize, token, userinfo, revoke, idpBase };
   cachedEndpoints = endpoints;
   cachedEndpointsAt = now;
   return endpoints;
@@ -231,9 +328,10 @@ const buildAuthorizeUrl = async ({ state, challenge, nonce }) => {
   return `${endpoints.authorize}?${params.toString()}`;
 };
 
-const applyClientAuth = (headers, body) => {
-  const { clientId, clientSecret, tokenAuthStyle } = config.atozas;
-  if (tokenAuthStyle === 'basic') {
+const applyClientAuth = (headers, body, authStyle) => {
+  const { clientId, clientSecret } = config.atozas;
+  const style = String(authStyle || config.atozas.tokenAuthStyle || 'body').trim().toLowerCase();
+  if (style === 'basic') {
     const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
     headers.Authorization = `Basic ${basic}`;
     return;
@@ -244,67 +342,163 @@ const applyClientAuth = (headers, body) => {
   }
 };
 
-const exchangeCode = async ({ code, verifier }) => {
-  const endpoints = await discoverEndpoints();
-  if (!endpoints.token) {
-    throw new Error('ATOZAS token endpoint is not configured');
-  }
+const readAccessToken = (body) => {
+  if (!body || typeof body !== 'object') return '';
+  return String(
+    body.access_token
+    || body.accessToken
+    || body.token
+    || ''
+  ).trim();
+};
 
+const isUsableJsonTokenResponse = (result) => Boolean(result?.body && typeof result.body === 'object');
+
+const postTokenRequest = async ({ tokenUrl, code, verifier, redirectUri, authStyle }) => {
   const headers = { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' };
   const body = new URLSearchParams({
     grant_type: 'authorization_code',
     code,
-    redirect_uri: config.atozas.redirectUri,
+    redirect_uri: redirectUri,
   });
   if (verifier) {
     body.set('code_verifier', verifier);
   }
-  applyClientAuth(headers, body);
+  applyClientAuth(headers, body, authStyle);
 
-  const result = await fetchJson(endpoints.token, {
+  return fetchJson(tokenUrl, {
     method: 'POST',
     headers,
     body: body.toString(),
   });
+};
 
-  if (!result.ok || !result.body?.access_token) {
-    logger.warn('ATOZAS token exchange failed', {
-      status: result.status,
-      error: result.body?.error || '',
-      hint: result.body?.error_description || '',
-    });
-    throw new Error('ATOZAS token exchange failed');
+const publicCallbackUri = (req) => {
+  const configured = String(config.atozas.redirectUri || '').trim();
+  const xfHost = String(req?.get?.('x-forwarded-host') || '').split(',')[0].trim();
+  const host = xfHost || String(req?.get?.('host') || '').split(',')[0].trim();
+  const proto = (String(req?.get?.('x-forwarded-proto') || '').split(',')[0].trim()
+    || (req?.secure ? 'https' : 'http'));
+  if (!host) return configured;
+
+  const derived = `${proto}://${host.replace(/\/+$/, '')}/auth/atozas/callback`;
+  if (!configured) return derived;
+
+  const configuredHost = hostnameOf(configured);
+  const requestHost = host.split(':')[0].toLowerCase().replace(/^www\./, '');
+  if (configuredHost && requestHost && configuredHost === requestHost) {
+    return configured;
+  }
+  return derived;
+};
+
+const exchangeCode = async ({ code, verifier, redirectUri, req }) => {
+  const endpoints = await discoverEndpoints();
+  const tokenUrls = [...new Set([
+    endpoints.token,
+    ...phpVariants(endpoints.token),
+    `${endpoints.idpBase || canonicalIdpBase()}/token.php`,
+    `${endpoints.idpBase || canonicalIdpBase()}/token`,
+  ].filter((url) => url && !isSelfHostedIdpUrl(url)))];
+
+  if (!tokenUrls.length) {
+    throw new Error('ATOZAS token endpoint is not configured');
   }
 
-  return {
-    accessToken: result.body.access_token,
-    refreshToken: result.body.refresh_token || '',
-    idToken: result.body.id_token || '',
-    tokenType: result.body.token_type || 'Bearer',
-    expiresIn: result.body.expires_in,
-  };
+  const redirect = String(redirectUri || publicCallbackUri(req) || config.atozas.redirectUri || '').trim();
+  const authStyles = [...new Set([
+    config.atozas.tokenAuthStyle || 'body',
+    'body',
+    'basic',
+  ])];
+
+  let lastStatus = 0;
+  let lastError = '';
+  let lastHint = '';
+
+  for (const tokenUrl of tokenUrls) {
+    for (const authStyle of authStyles) {
+      const result = await postTokenRequest({
+        tokenUrl,
+        code,
+        verifier,
+        redirectUri: redirect,
+        authStyle,
+      });
+      lastStatus = result.status;
+      lastError = result.body?.error || '';
+      lastHint = result.body?.error_description || '';
+
+      const accessToken = readAccessToken(result.body);
+      if (result.ok && accessToken) {
+        return {
+          accessToken,
+          refreshToken: String(result.body.refresh_token || result.body.refreshToken || ''),
+          idToken: String(result.body.id_token || result.body.idToken || ''),
+          tokenType: result.body.token_type || 'Bearer',
+          expiresIn: result.body.expires_in,
+        };
+      }
+
+      if (!isUsableJsonTokenResponse(result)) {
+        break;
+      }
+      if (result.body?.error === 'invalid_client') {
+        continue;
+      }
+      if (result.body?.error === 'invalid_grant') {
+        logger.warn('ATOZAS token exchange failed', {
+          status: result.status,
+          error: result.body?.error || '',
+          hint: result.body?.error_description || '',
+        });
+        throw new Error('ATOZAS token exchange failed');
+      }
+      break;
+    }
+  }
+
+  logger.warn('ATOZAS token exchange failed', {
+    status: lastStatus,
+    error: lastError,
+    hint: lastHint,
+  });
+  throw new Error('ATOZAS token exchange failed');
 };
 
 const fetchUserInfo = async (accessToken) => {
   const endpoints = await discoverEndpoints();
-  if (!endpoints.userinfo) {
+  const userinfoUrls = [...new Set([
+    endpoints.userinfo,
+    ...phpVariants(endpoints.userinfo),
+    `${endpoints.idpBase || canonicalIdpBase()}/userinfo.php`,
+    `${endpoints.idpBase || canonicalIdpBase()}/userinfo`,
+  ].filter((url) => url && !isSelfHostedIdpUrl(url)))];
+
+  if (!userinfoUrls.length) {
     throw new Error('ATOZAS userinfo endpoint is not configured');
   }
 
-  const result = await fetchJson(endpoints.userinfo, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      Accept: 'application/json',
-    },
-  });
-
-  if (!result.ok || !result.body || typeof result.body !== 'object') {
-    logger.warn('ATOZAS userinfo request failed', { status: result.status });
-    throw new Error('ATOZAS userinfo request failed');
+  let lastStatus = 0;
+  for (const userinfoUrl of userinfoUrls) {
+    const result = await fetchJson(userinfoUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/json',
+      },
+    });
+    lastStatus = result.status;
+    if (result.ok && result.body && typeof result.body === 'object' && !Array.isArray(result.body)) {
+      return result.body;
+    }
+    if (result.body && typeof result.body === 'object') {
+      break;
+    }
   }
 
-  return result.body;
+  logger.warn('ATOZAS userinfo request failed', { status: lastStatus });
+  throw new Error('ATOZAS userinfo request failed');
 };
 
 const revokeToken = async (token, hint) => {
@@ -355,4 +549,7 @@ module.exports = {
   fetchUserInfo,
   revokeToken,
   isConfigured,
+  publicCallbackUri,
+  isSelfHostedIdpUrl,
+  canonicalIdpBase,
 };

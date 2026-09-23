@@ -65,6 +65,20 @@ function AppRoutes() {
     typeof window !== 'undefined' && window.sessionStorage.getItem('cas_show_welcome_splash') === '1'
   );
 
+  const hashQuery = (location.hash || '').replace(/^#/, '');
+  const ssoSearch = location.search
+    || (hashQuery && /(?:^|&)(code|authorization_code|auth_code|sso_code)=/.test(hashQuery) ? `?${hashQuery}` : '');
+  const ssoParams = new URLSearchParams(ssoSearch.startsWith('?') ? ssoSearch.slice(1) : ssoSearch);
+  const hasAtozasCode = ['code', 'authorization_code', 'auth_code', 'sso_code'].some((key) => ssoParams.get(key));
+  if (hasAtozasCode && !ssoParams.get('sso_error') && !location.pathname.startsWith('/auth/')) {
+    window.location.replace(`/auth/atozas/callback${ssoSearch}`);
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div className="spinner" />
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
