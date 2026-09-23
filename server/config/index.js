@@ -155,6 +155,16 @@ const config = {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   },
 
+  admin: {
+    emails: parseCsv(process.env.ADMIN_EMAILS).map((email) => email.toLowerCase()),
+    bootstrap: process.env.ADMIN_BOOTSTRAP === 'true',
+  },
+
+  adminAuth: {
+    username: String(process.env.ADMIN_USERNAME || 'admin').trim(),
+    password: String(process.env.ADMIN_PASSWORD || 'admin123'),
+  },
+
   ai: {
     provider: process.env.AI_PROVIDER || 'groq',
     openai: { apiKey: process.env.OPENAI_API_KEY },

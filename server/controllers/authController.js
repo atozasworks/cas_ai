@@ -283,6 +283,10 @@ exports.login = asyncHandler(async (req, res, next) => {
     return next(new AppError('Invalid or expired OTP', 401));
   }
 
+  if (user.isActive === false) {
+    return next(new AppError('This account has been blocked', 403));
+  }
+
   user.loginOtpHash = undefined;
   user.loginOtpExpiresAt = undefined;
   user.lastLogin = new Date();
@@ -390,6 +394,9 @@ exports.googleAuth = asyncHandler(async (req, res, next) => {
     { new: true }
   );
   if (user) {
+    if (user.isActive === false) {
+      return next(new AppError('This account has been blocked', 403));
+    }
     return sendTokenResponse(user, 200, res);
   }
 

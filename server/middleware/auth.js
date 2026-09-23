@@ -22,6 +22,10 @@ const protect = async (req, res, next) => {
       return next(new AppError('User associated with this token no longer exists', 401));
     }
 
+    if (user.isActive === false) {
+      return next(new AppError('This account has been blocked', 401));
+    }
+
     req.user = user;
     next();
   } catch (err) {

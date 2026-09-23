@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
+import { AdminAuthProvider } from './context/AdminAuthContext';
 import AuthPage from './components/Common/AuthPage';
 import LandingPage from './components/Common/LandingPage';
 import SplashScreen from './components/Mobile/SplashScreen';
@@ -16,6 +17,14 @@ import VehicleNearbyPopup from './components/Dashboard/VehicleNearbyPopup';
 import MobileTrackScreen from './components/Mobile/MobileTrackScreen';
 import PwaInstallBanner from './components/Common/PwaInstallBanner';
 import { useIsMobile } from './hooks/useIsMobile';
+import AdminRoute from './components/Admin/AdminRoute';
+import AdminLayout from './components/Admin/AdminLayout';
+import AdminLogin from './components/Admin/AdminLogin';
+import AdminDashboard from './components/Admin/AdminDashboard';
+import AdminUsers from './components/Admin/AdminUsers';
+import AdminAlerts from './components/Admin/AdminAlerts';
+import AdminEmergencyContacts from './components/Admin/AdminEmergencyContacts';
+import AdminSettings from './components/Admin/AdminSettings';
 
 function PrivateRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -50,6 +59,8 @@ function MobileLoginGate({ initialMode = 'login' }) {
 function AppRoutes() {
   const { isAuthenticated, loading } = useAuth();
   const isMobile = useIsMobile();
+  const location = useLocation();
+  const isAdminPath = location.pathname.startsWith('/home/admin');
   const [showWelcomeSplash, setShowWelcomeSplash] = useState(() =>
     typeof window !== 'undefined' && window.sessionStorage.getItem('cas_show_welcome_splash') === '1'
   );
@@ -62,7 +73,16 @@ function AppRoutes() {
     );
   }
 
-  if (isAuthenticated && isMobile && showWelcomeSplash) {
+  if (location.pathname.length > 1 && location.pathname.endsWith('/')) {
+    return (
+      <Navigate
+        to={`${location.pathname.replace(/\/+$/, '')}${location.search}${location.hash}`}
+        replace
+      />
+    );
+  }
+
+  if (isAuthenticated && isMobile && showWelcomeSplash && !isAdminPath) {
     return (
       <SplashScreen
         onFinish={() => {
@@ -75,14 +95,24 @@ function AppRoutes() {
 
   return (
     <>
-      {isAuthenticated && <Navbar />}
-      {isAuthenticated && <EmergencyOverlay />}
-      {isAuthenticated && <VehicleNearbyPopup />}
-      {isAuthenticated && <BottomNav />}
+      {isAuthenticated && !isAdminPath && <Navbar />}
+      {isAuthenticated && !isAdminPath && <EmergencyOverlay />}
+      {isAuthenticated && !isAdminPath && <VehicleNearbyPopup />}
+      {isAuthenticated && !isAdminPath && <BottomNav />}
       <Routes>
         <Route path="/login" element={
           isAuthenticated ? <Navigate to="/home" replace /> : <MobileLoginGate initialMode="login" />
         } />
+        <Route path="/home/admin/login" element={<AdminLogin />} />
+        <Route path="/home/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+          <Route index element={<Navigate to="/home/admin/panel" replace />} />
+          <Route path="panel/*" element={<AdminDashboard />} />
+          <Route path="users/*" element={<AdminUsers />} />
+          <Route path="alerts/*" element={<AdminAlerts />} />
+          <Route path="emergency-contacts/*" element={<AdminEmergencyContacts />} />
+          <Route path="settings/*" element={<AdminSettings />} />
+          <Route path="*" element={<Navigate to="/home/admin/panel" replace />} />
+        </Route>
         <Route path="/home" element={
           isAuthenticated ? <DashboardPage /> : <LandingPage />
         } />
@@ -108,6 +138,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <AdminAuthProvider>
         <SocketProvider>
           <PwaInstallBanner />
           <AppRoutes />
@@ -124,6 +155,7 @@ export default function App() {
             }}
           />
         </SocketProvider>
+        </AdminAuthProvider>
       </AuthProvider>
     </BrowserRouter>
   );

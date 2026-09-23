@@ -6,6 +6,7 @@ router.use('/auth', require('./authRoutes'));
 router.use('/vehicles', require('./vehicleRoutes'));
 router.use('/analytics', require('./analyticsRoutes'));
 router.use('/ai', require('./aiRoutes'));
+router.use('/admin', require('./adminRoutes'));
 
 router.get('/health', (req, res) => {
   res.json({
