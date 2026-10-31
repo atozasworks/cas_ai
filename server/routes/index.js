@@ -17,10 +17,19 @@ router.get('/health', (req, res) => {
 });
 
 router.get('/app-config', (req, res) => {
+  let origin = req.get('origin') || '';
+  if (!origin && req.get('referer')) {
+    try { origin = new URL(req.get('referer')).origin; } catch (_) { origin = ''; }
+  }
+  if (!origin) {
+    const host = req.get('x-forwarded-host') || req.get('host') || '';
+    const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
+    if (host) origin = `${proto}://${host}`;
+  }
   res.json({
     success: true,
     apiUrl: config.publicClient.apiUrl || '/api/v1',
-    googleClientId: config.publicClient.googleClientId || '',
+    googleClientId: config.publicClient.googleClientIdForOrigin(origin) || '',
   });
 });
 

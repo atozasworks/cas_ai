@@ -91,15 +91,32 @@ const isOriginAllowed = (origin) => {
   }
   return false;
 };
-const googleClientIds = Array.from(
-  new Set(parseCsv(process.env.GOOGLE_CLIENT_IDS || process.env.GOOGLE_CLIENT_ID))
-);
 const publicApiUrl = process.env.PUBLIC_API_URL || process.env.REACT_APP_API_URL || '/api/v1';
 const publicGoogleClientId =
   process.env.PUBLIC_GOOGLE_CLIENT_ID
   || process.env.REACT_APP_GOOGLE_CLIENT_ID
   || process.env.GOOGLE_CLIENT_ID
   || '';
+const googleClientIdByOrigin = new Map();
+for (const entry of parseCsv(process.env.PUBLIC_GOOGLE_CLIENT_ID_BY_ORIGIN)) {
+  const eq = entry.indexOf('=');
+  if (eq <= 0) continue;
+  const origin = normalizeOrigin(entry.slice(0, eq));
+  const clientId = entry.slice(eq + 1).trim();
+  if (origin && clientId) googleClientIdByOrigin.set(origin, clientId);
+}
+const googleClientIdForOrigin = (origin) => {
+  const normalized = normalizeOrigin(origin);
+  if (normalized && googleClientIdByOrigin.has(normalized)) {
+    return googleClientIdByOrigin.get(normalized);
+  }
+  return String(publicGoogleClientId || '').trim();
+};
+const googleClientIds = Array.from(new Set([
+  ...parseCsv(process.env.GOOGLE_CLIENT_IDS || process.env.GOOGLE_CLIENT_ID),
+  publicGoogleClientId,
+  ...googleClientIdByOrigin.values(),
+].map((id) => String(id || '').trim()).filter(Boolean)));
 
 const config = {
   server: {
@@ -167,6 +184,7 @@ const config = {
   publicClient: {
     apiUrl: String(publicApiUrl || '/api/v1').trim(),
     googleClientId: String(publicGoogleClientId || '').trim(),
+    googleClientIdForOrigin,
   },
 
   cors: {

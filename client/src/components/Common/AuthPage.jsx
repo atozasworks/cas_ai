@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { FiShield, FiMail, FiLock, FiUser, FiPhone, FiArrowLeft } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import { getRuntimeConfig, loadRuntimeConfig } from '../../services/runtimeConfig';
+import { loadRuntimeConfig } from '../../services/runtimeConfig';
 import './AuthPage.css';
 
 // Sign-up steps: 'details' (google + name, email, phone) -> 'otp' -> done
@@ -57,7 +57,7 @@ export default function AuthPage({ initialMode = 'login' }) {
   const [form, setForm] = useState({ name: '', email: '', phone: '', otp: '' });
   const [otpSent, setOtpSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [googleClientId, setGoogleClientId] = useState(() => getRuntimeConfig().googleClientId || '');
+  const [googleClientId, setGoogleClientId] = useState('');
   const [signupStep, setSignupStep] = useState(SIGNUP_STEPS.DETAILS);
   const { login, requestOtp, register, googleAuth } = useAuth();
   const googleBtnRef = useRef(null);
