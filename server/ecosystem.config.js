@@ -19,7 +19,7 @@ function parseEnvFile(filePath) {
       (value.startsWith('"') && value.endsWith('"') && value.length >= 2)
       || (value.startsWith("'") && value.endsWith("'") && value.length >= 2)
     ) {
-      value = value.slice(1, -1);
+      value = value.slice(1, -1).replace(/\\(["'\\])/g, '$1');
     } else {
       const commentAt = value.search(/\s+#/);
       if (commentAt !== -1) value = value.slice(0, commentAt).trim();

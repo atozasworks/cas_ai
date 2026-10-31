@@ -697,20 +697,24 @@ jobs:
             'ATOZAS_HOMEPAGE_KEY','ATOZAS_SESSION_COOKIE_NAME','ATOZAS_SESSION_SECRET','ATOZAS_SESSION_MAX_AGE_DAYS',
             'ATOZAS_SESSION_COLLECTION','ATOZAS_COOKIE_SECURE','ATOZAS_COOKIE_SAMESITE','ATOZAS_AUTO_REDIRECT'
           ];
+          const clean = (value) => {
+            let text = String(value ?? '').replace(/[\r\n]/g, '').trim();
+            if (
+              (text.startsWith('"') && text.endsWith('"') && text.length >= 2)
+              || (text.startsWith("'") && text.endsWith("'") && text.length >= 2)
+            ) {
+              text = text.slice(1, -1).trim();
+            }
+            return text;
+          };
+          const quote = (value) => '"' + value.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
           for (const key of ['MONGODB_URI', 'JWT_SECRET']) {
-            if (!process.env[key]) {
+            if (!clean(process.env[key])) {
               console.error(key + ' is empty in this GitHub Environment.');
               process.exit(1);
             }
           }
-          const lines = keys.map((key) => {
-            const value = process.env[key] ?? '';
-            if (/[\r\n"]/.test(value)) {
-              console.error(key + ' contains a newline or quote, so it cannot be written to .env.');
-              process.exit(1);
-            }
-            return key + '="' + value + '"';
-          });
+          const lines = keys.map((key) => key + '=' + quote(clean(process.env[key])));
           fs.writeFileSync('env.deploy', lines.join('\n') + '\n', { mode: 0o600 });
           NODE
 
