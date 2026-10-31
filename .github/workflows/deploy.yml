@@ -698,16 +698,17 @@ jobs:
             fi
             if [ -s "$HOME/.nvm/nvm.sh" ]; then
               export NVM_DIR="$HOME/.nvm"
-              set +e
-              . "$NVM_DIR/nvm.sh"
-              nvm use 20 >/dev/null 2>&1 || nvm use 18 >/dev/null 2>&1
-              set -e
+              . "$NVM_DIR/nvm.sh" || true
+              nvm use 20 >/dev/null 2>&1 || nvm use 18 >/dev/null 2>&1 || true
             fi
-            if ! command -v npm >/dev/null 2>&1; then
+            npm_bin=$(command -v npm || true)
+            if [ -z "$npm_bin" ]; then
               echo "npm was not found for this SSH user. Install Node.js 20 before deploying." >&2
               exit 1
             fi
-            if ! command -v pm2 >/dev/null 2>&1; then
+            echo "Using $npm_bin $($npm_bin -v)"
+            pm2_bin=$(command -v pm2 || true)
+            if [ -z "$pm2_bin" ]; then
               npm install -g pm2
             fi
             cd "$APP_DIR/server"
@@ -780,10 +781,8 @@ jobs:
               tar -xzf "$APP_DIR/rollback-server.tgz" -C "$APP_DIR/server"
               if [ -s "$HOME/.nvm/nvm.sh" ]; then
                 export NVM_DIR="$HOME/.nvm"
-                set +e
-                . "$NVM_DIR/nvm.sh"
-                nvm use 20 >/dev/null 2>&1 || nvm use 18 >/dev/null 2>&1
-                set -e
+                . "$NVM_DIR/nvm.sh" || true
+                nvm use 20 >/dev/null 2>&1 || nvm use 18 >/dev/null 2>&1 || true
               fi
               npm ci --omit=dev
               pm2 startOrReload ecosystem.config.js --update-env || true
