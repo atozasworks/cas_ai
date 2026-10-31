@@ -550,10 +550,10 @@ jobs:
               echo "VPS_APP_DIR secret is empty for this GitHub Environment." >&2
               exit 1
             fi
-            case "$APP_DIR" in
-              /*) ;;
-              *) echo "VPS_APP_DIR must be an absolute path." >&2; exit 1 ;;
-            esac
+            if [ "${APP_DIR#/}" = "$APP_DIR" ]; then
+              echo "VPS_APP_DIR must be an absolute path." >&2
+              exit 1
+            fi
             mkdir -p "$APP_DIR/server" "$APP_DIR/server/build"
 
       - name: Upload frontend archive
