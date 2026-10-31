@@ -286,7 +286,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
-          npx --yes serve@14 client/build -s -l 4173 > "$RUNNER_TEMP/serve.log" 2>&1 &
+          npx --yes serve@14 -s -l tcp://127.0.0.1:4173 client/build > "$RUNNER_TEMP/serve.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/serve.pid"
           ready=0
           i=0
@@ -296,11 +296,12 @@ jobs:
             sleep 1
           done
           if [ "$ready" -ne 1 ]; then
-            echo "Lighthouse|FAIL|static server did not start" >> quality-results.tsv
+            detail=$(tail -n 1 "$RUNNER_TEMP/serve.log" | tr '|' '/')
+            echo "Lighthouse|FAIL|static server did not start ${detail}" >> quality-results.tsv
             kill "$(cat "$RUNNER_TEMP/serve.pid")" >/dev/null 2>&1 || true
             exit 1
           fi
-          npx --yes lighthouse@12 http://127.0.0.1:4173 --quiet --chrome-flags="--headless --no-sandbox --disable-gpu" --output=json --output-path=lighthouse.json --only-categories=performance,accessibility,best-practices,seo
+          npx --yes lighthouse@12 http://127.0.0.1:4173 --quiet --chrome-flags="--headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage" --output=json --output-path=lighthouse.json --only-categories=performance,accessibility,best-practices,seo
           code=$?
           kill "$(cat "$RUNNER_TEMP/serve.pid")" >/dev/null 2>&1 || true
           if [ "$code" -ne 0 ]; then
@@ -321,7 +322,14 @@ jobs:
           set +e
           docker build -f server/Dockerfile -t cas-server:ci server > "$RUNNER_TEMP/docker.txt" 2>&1
           code=$?
-          if [ "$code" -eq 0 ]; then result=PASS; detail="cas-server:ci"; else result=FAIL; detail="docker build failed"; fi
+          if [ "$code" -eq 0 ]; then
+            result=PASS
+            detail="cas-server:ci"
+          else
+            result=FAIL
+            detail=$(tail -n 1 "$RUNNER_TEMP/docker.txt" | tr '|' '/')
+            [ -n "$detail" ] || detail="docker build failed"
+          fi
           echo "Docker|$result|$detail" >> quality-results.tsv
           tail -n 40 "$RUNNER_TEMP/docker.txt"
           exit "$code"
@@ -329,25 +337,41 @@ jobs:
       - name: Enforce quality gate
         if: always()
         run: |
+          set +e
+          if [ ! -f quality-results.tsv ]; then
+            echo "::error::quality-results.tsv was not created, so no check results were recorded."
+            exit 1
+          fi
+          echo "### Quality gate results"
+          echo "| Check | Result | Detail |"
+          echo "| --- | --- | --- |"
           echo "### Quality gate results" >> "$GITHUB_STEP_SUMMARY"
           echo "| Check | Result | Detail |" >> "$GITHUB_STEP_SUMMARY"
           echo "| --- | --- | --- |" >> "$GITHUB_STEP_SUMMARY"
-          while IFS='|' read -r name result detail; do
+          failed=0
+          while IFS='|' read -r name result detail || [ -n "$name" ]; do
             [ -n "$name" ] || continue
+            echo "| $name | $result | $detail |"
             echo "| $name | $result | $detail |" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$result" = "FAIL" ]; then
+              echo "::error title=$name::$detail"
+              failed=1
+            fi
           done < quality-results.tsv
-          if grep -q '|FAIL|' quality-results.tsv; then
-            echo "Quality gate failed." >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
           expected="Secret scan|Lint server|Server install|Client install|Lint client|Security audit server|Security audit client|Database|Automated tests|API and performance|Production build|Lighthouse|Docker"
           IFS='|'
           for name in $expected; do
             if ! grep -q "^${name}|" quality-results.tsv; then
-              echo "Missing result for ${name}" >> "$GITHUB_STEP_SUMMARY"
-              exit 1
+              echo "::error title=Missing check::$name did not record a result"
+              echo "Missing result for $name"
+              failed=1
             fi
           done
+          if [ "$failed" -ne 0 ]; then
+            echo "Quality gate failed."
+            exit 1
+          fi
+          echo "Quality gate passed."
 
       - name: Upload quality results
         if: always()

@@ -59,8 +59,7 @@ export default function AuthPage({ initialMode = 'login' }) {
   const [submitting, setSubmitting] = useState(false);
   const [googleClientId, setGoogleClientId] = useState(() => getRuntimeConfig().googleClientId || '');
   const [signupStep, setSignupStep] = useState(SIGNUP_STEPS.DETAILS);
-  const [otpVerified, setOtpVerified] = useState(false);
-  const { login, requestOtp, verifySignupOtp, register, googleAuth } = useAuth();
+  const { login, requestOtp, register, googleAuth } = useAuth();
   const googleBtnRef = useRef(null);
   const loginGoogleBtnRef = useRef(null);
 
@@ -68,7 +67,6 @@ export default function AuthPage({ initialMode = 'login' }) {
     const shouldLoginMode = initialMode !== 'register';
     setIsLogin(shouldLoginMode);
     setOtpSent(false);
-    setOtpVerified(false);
     setSignupStep(SIGNUP_STEPS.DETAILS);
     setForm({ name: '', email: '', phone: '', otp: '' });
   }, [initialMode]);
@@ -221,14 +219,6 @@ export default function AuthPage({ initialMode = 'login' }) {
   const resetToLogin = () => {
     setIsLogin(true);
     setOtpSent(false);
-    setOtpVerified(false);
-    setSignupStep(SIGNUP_STEPS.DETAILS);
-    setForm({ name: '', email: '', phone: '', otp: '' });
-  };
-
-  const resetSignup = () => {
-    setOtpSent(false);
-    setOtpVerified(false);
     setSignupStep(SIGNUP_STEPS.DETAILS);
     setForm({ name: '', email: '', phone: '', otp: '' });
   };
@@ -240,7 +230,7 @@ export default function AuthPage({ initialMode = 'login' }) {
       [field]: value,
       ...(field === 'email' && otpSent ? { otp: '' } : {}),
     }));
-    if (field === 'email' && otpSent) { setOtpSent(false); setOtpVerified(false); }
+    if (field === 'email' && otpSent) setOtpSent(false);
   };
 
   /* ───── RENDER: LOGIN ───── */

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useId, useMemo } from 'react';
 import { FiChevronDown } from 'react-icons/fi';
 import './SearchableDropdown.css';
 
@@ -13,6 +13,7 @@ export default function SearchableDropdown({
   className = '',
   emptyMessage = 'No matches found',
 }) {
+  const listboxId = useId();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const wrapperRef = useRef(null);
@@ -121,6 +122,7 @@ export default function SearchableDropdown({
       <input
         ref={inputRef}
         type="text"
+        role="combobox"
         className="searchable-dropdown-input"
         placeholder={placeholder}
         value={displayValue}
@@ -132,6 +134,8 @@ export default function SearchableDropdown({
         autoComplete="off"
         aria-expanded={open}
         aria-haspopup="listbox"
+        aria-autocomplete="list"
+        aria-controls={listboxId}
         readOnly={disabled}
       />
       <button
@@ -147,7 +151,7 @@ export default function SearchableDropdown({
       </button>
 
       {open && !disabled && (
-        <ul className="searchable-dropdown-menu" role="listbox">
+        <ul id={listboxId} className="searchable-dropdown-menu" role="listbox">
           {filtered.length > 0 ? (
             filtered.map((opt) => (
               <li
