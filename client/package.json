@@ -20,7 +20,11 @@
     "prebuild": "node scripts/generate-pwa-icons.js",
     "start": "cross-env PORT=7760 react-scripts start",
     "start:phone": "cross-env PORT=7760 HTTPS=true react-scripts start",
-    "build": "react-scripts build"
+    "build": "react-scripts build",
+    "lint": "eslint src --ext .js,.jsx --fix"
+  },
+  "eslintConfig": {
+    "extends": ["react-app"]
   },
   "proxy": "http://localhost:5000",
   "browserslist": {

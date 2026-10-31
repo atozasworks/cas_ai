@@ -50,8 +50,11 @@ function initializeSocket(httpServer) {
   const pubClient = getRedisClient();
   const subClient = getRedisSubscriber();
   if (pubClient && subClient) {
-    io.adapter(createAdapter(pubClient, subClient));
-    logger.info('Socket.IO Redis adapter attached for multi-instance scaling');
+    // Separate pub/sub prefix so test and production on one Redis do not share events.
+    // Redis database numbers do not isolate pub/sub.
+    const redisAdapterKey = `cas:${process.env.APP_ENV || 'default'}`;
+    io.adapter(createAdapter(pubClient, subClient, { key: redisAdapterKey }));
+    logger.info(`Socket.IO Redis adapter attached (${redisAdapterKey})`);
   }
 
   io.on('connection', (socket) => {

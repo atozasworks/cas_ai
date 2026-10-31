@@ -58,6 +58,8 @@ const localDevOrigins = [
   'http://127.0.0.1:7760',
 ];
 const configuredOrigins = parseOrigins(process.env.CORS_ORIGINS || process.env.CLIENT_URL);
+const redisDbParsed = parseInt(process.env.REDIS_DB, 10);
+const redisDb = Number.isNaN(redisDbParsed) ? 0 : redisDbParsed;
 const allowedOrigins = Array.from(
   new Set(
     process.env.NODE_ENV === 'development'
@@ -121,6 +123,7 @@ const config = {
     host: process.env.REDIS_HOST || '127.0.0.1',
     port: parseInt(process.env.REDIS_PORT, 10) || 6379,
     password: process.env.REDIS_PASSWORD || undefined,
+    db: redisDb,
     retryDelayMs: 3000,
     maxRetries: 3,
   },

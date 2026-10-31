@@ -1,0 +1,779 @@
+# Builds the React app on GitHub and uploads it to server/build on the VPS.
+# Uploads the Node server and restarts PM2 only when server/ changed.
+# The server .env is never uploaded and never overwritten.
+#
+# Branch ucasaapptest_testCICD_testSite_deploy -> GitHub Environment "test"
+#   https://casai.testatozas.in
+# Branch ucasaappmain_final_deploy -> GitHub Environment "production"
+#   https://www.ucasaapp.com
+#
+# Repository secrets: VPS_HOST, VPS_PORT, VPS_SSH_KEY
+# Environment secrets (same names, different values on production and test):
+#   VPS_USER, VPS_APP_DIR, MONGODB_URI, JWT_SECRET, SMTP_EMAIL_PASSWORD,
+#   OPENAI_API_KEY, GROQ_API_KEY, DEEPSEEK_API_KEY, GOOGLE_CLIENT_SECRET,
+#   GOOGLE_MAPS_API_KEY, ATOZAS_CLIENT_SECRET, ATOZAS_SESSION_SECRET
+# production: VPS_USER=ucasaapp
+#             VPS_APP_DIR=/home/ucasaapp/htdocs/ucasaapp.com
+#             MONGODB_URI database name casai
+# test:       VPS_USER=testatozas-casai
+#             VPS_APP_DIR=/home/testatozas-casai/htdocs/casai.testatozas.in
+#             MONGODB_URI database name casai_test
+# The server still reads server/.env on the VPS. This workflow does not overwrite it.
+
+name: Deploy
+
+on:
+  push:
+    branches:
+      - ucasaapptest_testCICD_testSite_deploy
+      - ucasaappmain_final_deploy
+  workflow_dispatch:
+    inputs:
+      deploy_frontend:
+        description: Build the React app on GitHub and upload it to server/build
+        type: boolean
+        default: true
+      deploy_backend:
+        description: Upload the Node server and restart PM2
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  resolve:
+    name: Select site
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.meta.outputs.environment }}
+      site_url: ${{ steps.meta.outputs.site_url }}
+    steps:
+      - name: Map branch to site
+        id: meta
+        run: |
+          case "${GITHUB_REF_NAME}" in
+            ucasaappmain_final_deploy)
+              echo "environment=production" >> "$GITHUB_OUTPUT"
+              echo "site_url=https://www.ucasaapp.com" >> "$GITHUB_OUTPUT"
+              ;;
+            ucasaapptest_testCICD_testSite_deploy)
+              echo "environment=test" >> "$GITHUB_OUTPUT"
+              echo "site_url=https://casai.testatozas.in" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "This workflow only deploys ucasaapptest_testCICD_testSite_deploy and ucasaappmain_final_deploy." >&2
+              echo "Current branch: ${GITHUB_REF_NAME}" >&2
+              exit 1
+              ;;
+          esac
+
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    needs: resolve
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Paths filter
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'client/**'
+            backend:
+              - 'server/**'
+
+  quality:
+    name: Quality gate
+    runs-on: ubuntu-latest
+    needs: [resolve, changes]
+    timeout-minutes: 40
+    if: >-
+      needs.resolve.result == 'success' &&
+      needs.changes.result == 'success' &&
+      ((github.event_name == 'push' && (needs.changes.outputs.frontend == 'true' || needs.changes.outputs.backend == 'true')) ||
+       (github.event_name == 'workflow_dispatch' && (inputs.deploy_frontend == true || inputs.deploy_backend == true)))
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Record a check
+        id: init
+        run: echo -n > quality-results.tsv
+
+      - name: Secret scan
+        id: secrets_scan
+        continue-on-error: true
+        run: |
+          set +e
+          result=FAIL
+          detail="tracked env file"
+          if git ls-files | grep -E '(^|/)\.env$'; then
+            detail="a .env file is tracked"
+          else
+            result=PASS
+            detail="no tracked .env"
+          fi
+          echo "Secret scan|$result|$detail" >> quality-results.tsv
+          test "$result" = PASS
+
+      - name: Lint server
+        id: lint_server
+        continue-on-error: true
+        run: |
+          set +e
+          node server/scripts/ci/syntax-check.js > "$RUNNER_TEMP/lint-server.txt" 2>&1
+          code=$?
+          if [ "$code" -eq 0 ]; then result=PASS; else result=FAIL; fi
+          detail=$(tail -n 1 "$RUNNER_TEMP/lint-server.txt" | tr '|' '/')
+          echo "Lint server|$result|$detail" >> quality-results.tsv
+          cat "$RUNNER_TEMP/lint-server.txt"
+          exit "$code"
+
+      - name: Install server dependencies
+        id: install_server
+        continue-on-error: true
+        run: |
+          set +e
+          npm ci --prefix server > "$RUNNER_TEMP/install-server.txt" 2>&1
+          code=$?
+          if [ "$code" -eq 0 ]; then result=PASS; else result=FAIL; fi
+          echo "Server install|$result|npm ci" >> quality-results.tsv
+          cat "$RUNNER_TEMP/install-server.txt"
+          exit "$code"
+
+      - name: Install client dependencies
+        id: install_client
+        continue-on-error: true
+        run: |
+          set +e
+          npm ci --prefix client > "$RUNNER_TEMP/install-client.txt" 2>&1
+          code=$?
+          if [ "$code" -eq 0 ]; then result=PASS; else result=FAIL; fi
+          echo "Client install|$result|npm ci" >> quality-results.tsv
+          cat "$RUNNER_TEMP/install-client.txt"
+          exit "$code"
+
+      - name: Lint client and auto-fix
+        id: lint_client
+        continue-on-error: true
+        run: |
+          set +e
+          eslint="client/node_modules/.bin/eslint"
+          if [ ! -x "$eslint" ]; then
+            eslint=$(find client/node_modules -path '*/eslint/bin/eslint.js' -print -quit)
+          fi
+          if [ -z "$eslint" ]; then
+            echo "Lint client|FAIL|eslint binary not found" >> quality-results.tsv
+            exit 1
+          fi
+          if [ "${eslint%.js}" != "$eslint" ]; then
+            node "$eslint" client/src --ext .js,.jsx --fix > "$RUNNER_TEMP/lint-client.txt" 2>&1
+          else
+            "$eslint" client/src --ext .js,.jsx --fix > "$RUNNER_TEMP/lint-client.txt" 2>&1
+          fi
+          code=$?
+          if ! git diff --quiet -- client/src; then
+            echo "eslint --fix changed files:" >> "$RUNNER_TEMP/lint-client.txt"
+            git diff --stat -- client/src >> "$RUNNER_TEMP/lint-client.txt"
+            code=1
+          fi
+          if [ "$code" -eq 0 ]; then result=PASS; detail="clean"; else result=FAIL; detail="errors or uncommitted fixes"; fi
+          echo "Lint client|$result|$detail" >> quality-results.tsv
+          cat "$RUNNER_TEMP/lint-client.txt"
+          exit "$code"
+
+      - name: Security audit server
+        id: audit_server
+        continue-on-error: true
+        run: |
+          set +e
+          detail=$(node server/scripts/ci/audit-gate.js server critical 2>"$RUNNER_TEMP/audit-server.err")
+          code=$?
+          if [ "$code" -eq 0 ]; then result=PASS; else result=FAIL; detail=$(cat "$RUNNER_TEMP/audit-server.err" | tr '\n' ' '); fi
+          echo "Security audit server|$result|$detail" >> quality-results.tsv
+          echo "$detail"
+          exit "$code"
+
+      - name: Security audit client
+        id: audit_client
+        continue-on-error: true
+        run: |
+          set +e
+          detail=$(node server/scripts/ci/audit-gate.js client critical 2>"$RUNNER_TEMP/audit-client.err")
+          code=$?
+          if [ "$code" -eq 0 ]; then result=PASS; else result=FAIL; detail=$(cat "$RUNNER_TEMP/audit-client.err" | tr '\n' ' '); fi
+          echo "Security audit client|$result|$detail" >> quality-results.tsv
+          echo "$detail"
+          exit "$code"
+
+      - name: Database and Prisma
+        id: database
+        continue-on-error: true
+        run: |
+          set +e
+          node server/scripts/ci/db-check.js > "$RUNNER_TEMP/db.txt" 2>&1
+          code=$?
+          if [ "$code" -eq 0 ]; then result=PASS; else result=FAIL; fi
+          detail=$(tail -n 1 "$RUNNER_TEMP/db.txt" | tr '|' '/')
+          echo "Database|$result|$detail" >> quality-results.tsv
+          cat "$RUNNER_TEMP/db.txt"
+          exit "$code"
+
+      - name: Automated tests
+        id: tests
+        continue-on-error: true
+        run: |
+          set +e
+          node --test server/test/*.test.js > "$RUNNER_TEMP/test.txt" 2>&1
+          code=$?
+          if [ "$code" -eq 0 ]; then result=PASS; detail="node:test"; else result=FAIL; detail="node:test failed"; fi
+          echo "Automated tests|$result|$detail" >> quality-results.tsv
+          cat "$RUNNER_TEMP/test.txt"
+          exit "$code"
+
+      - name: API and performance
+        id: api
+        continue-on-error: true
+        run: |
+          set +e
+          node server/scripts/ci/api-check.js > "$RUNNER_TEMP/api.txt" 2>&1
+          code=$?
+          if [ "$code" -eq 0 ]; then result=PASS; else result=FAIL; fi
+          detail=$(grep -E 'API health|Error|error' "$RUNNER_TEMP/api.txt" | tail -n 1 | tr '|' '/')
+          echo "API and performance|$result|$detail" >> quality-results.tsv
+          cat "$RUNNER_TEMP/api.txt"
+          exit "$code"
+
+      - name: Production build
+        id: build
+        continue-on-error: true
+        working-directory: client
+        env:
+          CI: false
+          GENERATE_SOURCEMAP: false
+          DISABLE_ESLINT_PLUGIN: true
+        run: |
+          set +e
+          npm run build > "$RUNNER_TEMP/build.txt" 2>&1
+          code=$?
+          if [ "$code" -eq 0 ] && [ -f build/index.html ]; then result=PASS; detail="client/build"; else result=FAIL; detail="client build failed"; fi
+          echo "Production build|$result|$detail" >> "$GITHUB_WORKSPACE/quality-results.tsv"
+          cat "$RUNNER_TEMP/build.txt"
+          exit "$code"
+
+      - name: Lighthouse
+        id: lighthouse
+        continue-on-error: true
+        run: |
+          set +e
+          npx --yes serve@14 client/build -s -l 4173 > "$RUNNER_TEMP/serve.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/serve.pid"
+          ready=0
+          i=0
+          while [ "$i" -lt 20 ]; do
+            if curl -fsS http://127.0.0.1:4173 >/dev/null; then ready=1; break; fi
+            i=$((i + 1))
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            echo "Lighthouse|FAIL|static server did not start" >> quality-results.tsv
+            kill "$(cat "$RUNNER_TEMP/serve.pid")" >/dev/null 2>&1 || true
+            exit 1
+          fi
+          npx --yes lighthouse@12 http://127.0.0.1:4173 --quiet --chrome-flags="--headless --no-sandbox --disable-gpu" --output=json --output-path=lighthouse.json --only-categories=performance,accessibility,best-practices,seo
+          code=$?
+          kill "$(cat "$RUNNER_TEMP/serve.pid")" >/dev/null 2>&1 || true
+          if [ "$code" -ne 0 ]; then
+            echo "Lighthouse|FAIL|lighthouse did not finish" >> quality-results.tsv
+            exit 1
+          fi
+          detail=$(node server/scripts/ci/lighthouse-gate.js lighthouse.json)
+          code=$?
+          if [ "$code" -eq 0 ]; then result=PASS; else result=FAIL; fi
+          echo "Lighthouse|$result|$detail" >> quality-results.tsv
+          echo "$detail"
+          exit "$code"
+
+      - name: Docker build
+        id: docker
+        continue-on-error: true
+        run: |
+          set +e
+          docker build -f server/Dockerfile -t cas-server:ci server > "$RUNNER_TEMP/docker.txt" 2>&1
+          code=$?
+          if [ "$code" -eq 0 ]; then result=PASS; detail="cas-server:ci"; else result=FAIL; detail="docker build failed"; fi
+          echo "Docker|$result|$detail" >> quality-results.tsv
+          tail -n 40 "$RUNNER_TEMP/docker.txt"
+          exit "$code"
+
+      - name: Enforce quality gate
+        if: always()
+        run: |
+          echo "### Quality gate results" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Check | Result | Detail |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| --- | --- | --- |" >> "$GITHUB_STEP_SUMMARY"
+          while IFS='|' read -r name result detail; do
+            [ -n "$name" ] || continue
+            echo "| $name | $result | $detail |" >> "$GITHUB_STEP_SUMMARY"
+          done < quality-results.tsv
+          if grep -q '|FAIL|' quality-results.tsv; then
+            echo "Quality gate failed." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          expected="Secret scan|Lint server|Server install|Client install|Lint client|Security audit server|Security audit client|Database|Automated tests|API and performance|Production build|Lighthouse|Docker"
+          IFS='|'
+          for name in $expected; do
+            if ! grep -q "^${name}|" quality-results.tsv; then
+              echo "Missing result for ${name}" >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+          done
+
+      - name: Upload quality results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-results
+          path: quality-results.tsv
+          if-no-files-found: warn
+
+  deploy:
+    name: Deploy ${{ needs.resolve.outputs.environment }}
+    runs-on: ubuntu-latest
+    needs: [resolve, changes, quality]
+    environment: ${{ needs.resolve.outputs.environment }}
+    env:
+      PM2_APP_NAME: ${{ needs.resolve.outputs.environment == 'production' && 'cas-live' || 'cas-test' }}
+      PORT: ${{ needs.resolve.outputs.environment == 'production' && '3004' || '7760' }}
+      APP_ENV: ${{ needs.resolve.outputs.environment == 'production' && 'live' || 'test' }}
+      NODE_ENV: production
+      CLIENT_URL: ${{ needs.resolve.outputs.environment == 'production' && 'https://www.ucasaapp.com' || 'https://casai.testatozas.in' }}
+      CORS_ORIGINS: ${{ needs.resolve.outputs.environment == 'production' && 'https://ucasaapp.com,https://www.ucasaapp.com,http://localhost:3000,http://localhost:3001,http://localhost:5000,http://127.0.0.1:3000,http://127.0.0.1:5000,http://localhost:7760,https://casai.testatozas.in,https://www.casai.testatozas.in' || 'https://casai.testatozas.in,https://www.casai.testatozas.in' }}
+      BUILD_PATH: ${{ needs.resolve.outputs.environment == 'production' && '/home/ucasaapp/htdocs/ucasaapp.com/server/build' || '/home/testatozas-casai/htdocs/casai.testatozas.in/server/build' }}
+      MONGODB_URI: ${{ secrets.MONGODB_URI }}
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      REDIS_DB: ${{ needs.resolve.outputs.environment == 'production' && '0' || '1' }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      JWT_EXPIRES_IN: ${{ needs.resolve.outputs.environment == 'production' && '1h' || '7d' }}
+      SMTP_NAME: atozas.com
+      SMTP_SERVER: mail.atozas.com
+      SMTP_PORT: 465
+      SMTP_SECURE: true
+      SMTP_EMAIL: no-reply@atozas.com
+      SMTP_EMAIL_PASSWORD: ${{ secrets.SMTP_EMAIL_PASSWORD }}
+      SMTP_FROM: "Collision Avoidance System <no-reply@atozas.com>"
+      SMTP_TLS_REJECT_UNAUTHORIZED: false
+      AI_PROVIDER: groq
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      GOOGLE_CLIENT_ID: ${{ needs.resolve.outputs.environment == 'production' && '729737722363-4ticp091h2krqrpu9ahmr5au4k7cb2g9.apps.googleusercontent.com' || '976899398760-3vgtutuurtteok41nhm37tblnaabrq9n.apps.googleusercontent.com' }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      GOOGLE_CALLBACK_URL: ${{ needs.resolve.outputs.environment == 'production' && 'https://www.ucasaapp.com/api/auth/google/callback' || 'https://casai.testatozas.in/api/auth/google/callback' }}
+      GOOGLE_CALLBACK_URLS: https://ucasaapp.com/api/auth/google/callback,https://www.ucasaapp.com/api/auth/google/callback,https://casai.testatozas.in/api/auth/google/callback
+      PUBLIC_API_URL: /api/v1
+      PUBLIC_GOOGLE_CLIENT_ID: 976899398760-3vgtutuurtteok41nhm37tblnaabrq9n.apps.googleusercontent.com
+      PUBLIC_GOOGLE_CLIENT_ID_BY_ORIGIN: http://localhost:3000=976899398760-3vgtutuurtteok41nhm37tblnaabrq9n.apps.googleusercontent.com,http://127.0.0.1:3000=976899398760-3vgtutuurtteok41nhm37tblnaabrq9n.apps.googleusercontent.com,http://localhost:7760=976899398760-3vgtutuurtteok41nhm37tblnaabrq9n.apps.googleusercontent.com,http://127.0.0.1:7760=976899398760-3vgtutuurtteok41nhm37tblnaabrq9n.apps.googleusercontent.com,https://casai.testatozas.in=729737722363-4ticp091h2krqrpu9ahmr5au4k7cb2g9.apps.googleusercontent.com,https://www.casai.testatozas.in=729737722363-4ticp091h2krqrpu9ahmr5au4k7cb2g9.apps.googleusercontent.com,https://ucasaapp.com=729737722363-4ticp091h2krqrpu9ahmr5au4k7cb2g9.apps.googleusercontent.com,https://www.ucasaapp.com=729737722363-4ticp091h2krqrpu9ahmr5au4k7cb2g9.apps.googleusercontent.com
+      REACT_APP_GOOGLE_CLIENT_ID: 976899398760-3vgtutuurtteok41nhm37tblnaabrq9n.apps.googleusercontent.com
+      GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+      PROXIMITY_THRESHOLD_METERS: 500
+      CRITICAL_DISTANCE_METERS: 20
+      PROXIMITY_ALERT_METERS: ${{ needs.resolve.outputs.environment == 'production' && '50' || '1' }}
+      GPS_UPDATE_INTERVAL_MS: 3000
+      WEIGHT_PROXIMITY: 0.35
+      WEIGHT_RELATIVE_SPEED: 0.30
+      WEIGHT_DIRECTION_ALIGNMENT: 0.20
+      WEIGHT_ACCELERATION: 0.15
+      SOCKET_PING_INTERVAL: 10000
+      SOCKET_PING_TIMEOUT: 5000
+      RATE_LIMIT_WINDOW_MS: 60000
+      RATE_LIMIT_MAX_REQUESTS: 100
+      LOG_LEVEL: ${{ needs.resolve.outputs.environment == 'production' && 'info' || 'debug' }}
+      ATOZAS_SSO_ENABLED: true
+      ATOZAS_ISSUER: ${{ needs.resolve.outputs.environment == 'production' && 'https://www.ucasaapp.com/atozaswebsite/sso' || 'https://testatozas.in/atozaswebsite/sso' }}
+      ATOZAS_CLIENT_ID: ucasaapp
+      ATOZAS_CLIENT_SECRET: ${{ secrets.ATOZAS_CLIENT_SECRET }}
+      ATOZAS_REDIRECT_URI: ${{ needs.resolve.outputs.environment == 'production' && 'https://www.ucasaapp.com/auth/atozas/callback' || 'https://casai.testatozas.in/auth/atozas/callback' }}
+      ATOZAS_SCOPE: openid email profile
+      ATOZAS_AUTHORIZE_URL: ${{ needs.resolve.outputs.environment == 'production' && 'https://www.ucasaapp.com/atozaswebsite/sso/authorize' || 'https://testatozas.in/atozaswebsite/sso/authorize' }}
+      ATOZAS_TOKEN_URL: ${{ needs.resolve.outputs.environment == 'production' && 'https://www.ucasaapp.com/atozaswebsite/sso/token' || 'https://testatozas.in/atozaswebsite/sso/token' }}
+      ATOZAS_USERINFO_URL: ${{ needs.resolve.outputs.environment == 'production' && 'https://www.ucasaapp.com/atozaswebsite/sso/userinfo' || 'https://testatozas.in/atozaswebsite/sso/userinfo' }}
+      ATOZAS_REVOKE_URL: ${{ needs.resolve.outputs.environment == 'production' && 'https://www.ucasaapp.com/atozaswebsite/sso/revoke' || 'https://testatozas.in/atozaswebsite/sso/revoke' }}
+      ATOZAS_TOKEN_AUTH_STYLE: body
+      ATOZAS_HOMEPAGE_KEY: ucasaapp
+      ATOZAS_SESSION_COOKIE_NAME: cas_atozas_sid
+      ATOZAS_SESSION_SECRET: ${{ secrets.ATOZAS_SESSION_SECRET }}
+      ATOZAS_SESSION_MAX_AGE_DAYS: 30
+      ATOZAS_SESSION_COLLECTION: atozas_sessions
+      ATOZAS_COOKIE_SECURE: true
+      ATOZAS_COOKIE_SAMESITE: lax
+      ATOZAS_AUTO_REDIRECT: false
+    timeout-minutes: 30
+    if: >-
+      needs.quality.result == 'success' &&
+      needs.resolve.result == 'success' &&
+      needs.changes.result == 'success' &&
+      ((github.event_name == 'push' && (needs.changes.outputs.frontend == 'true' || needs.changes.outputs.backend == 'true')) ||
+       (github.event_name == 'workflow_dispatch' && (inputs.deploy_frontend == true || inputs.deploy_backend == true)))
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show target
+        run: echo "Deploying ${{ needs.resolve.outputs.environment }} to ${{ needs.resolve.outputs.site_url }}"
+
+      - name: Setup Node
+        if: >-
+          (github.event_name == 'push' && needs.changes.outputs.frontend == 'true') ||
+          (github.event_name == 'workflow_dispatch' && inputs.deploy_frontend == true)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install frontend dependencies
+        if: >-
+          (github.event_name == 'push' && needs.changes.outputs.frontend == 'true') ||
+          (github.event_name == 'workflow_dispatch' && inputs.deploy_frontend == true)
+        working-directory: client
+        run: npm ci
+
+      - name: Build frontend
+        if: >-
+          (github.event_name == 'push' && needs.changes.outputs.frontend == 'true') ||
+          (github.event_name == 'workflow_dispatch' && inputs.deploy_frontend == true)
+        working-directory: client
+        env:
+          CI: false
+          GENERATE_SOURCEMAP: false
+          DISABLE_ESLINT_PLUGIN: true
+        run: npm run build
+
+      - name: Pack frontend build
+        if: >-
+          (github.event_name == 'push' && needs.changes.outputs.frontend == 'true') ||
+          (github.event_name == 'workflow_dispatch' && inputs.deploy_frontend == true)
+        run: tar -C client/build -czf client-build.tar.gz .
+
+      - name: Prepare remote directory
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          APP_DIR: ${{ secrets.VPS_APP_DIR }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 5m
+          script_stop: true
+          envs: APP_DIR
+          script: |
+            set -eu
+            if [ -z "${APP_DIR:-}" ]; then
+              echo "VPS_APP_DIR secret is empty for this GitHub Environment." >&2
+              exit 1
+            fi
+            case "$APP_DIR" in
+              /*) ;;
+              *) echo "VPS_APP_DIR must be an absolute path." >&2; exit 1 ;;
+            esac
+            mkdir -p "$APP_DIR/server" "$APP_DIR/server/build"
+
+      - name: Upload frontend archive
+        if: >-
+          (github.event_name == 'push' && needs.changes.outputs.frontend == 'true') ||
+          (github.event_name == 'workflow_dispatch' && inputs.deploy_frontend == true)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: client-build.tar.gz
+          target: ${{ secrets.VPS_APP_DIR }}
+          overwrite: true
+
+      - name: Extract frontend into server/build
+        id: extract_frontend
+        if: >-
+          (github.event_name == 'push' && needs.changes.outputs.frontend == 'true') ||
+          (github.event_name == 'workflow_dispatch' && inputs.deploy_frontend == true)
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          APP_DIR: ${{ secrets.VPS_APP_DIR }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 5m
+          script_stop: true
+          envs: APP_DIR
+          script: |
+            set -eu
+            archive="$APP_DIR/client-build.tar.gz"
+            if [ ! -f "$archive" ]; then
+              echo "Missing $archive" >&2
+              exit 1
+            fi
+            staging="$APP_DIR/server/build.staging"
+            rm -rf "$staging"
+            mkdir -p "$staging"
+            tar -xzf "$archive" -C "$staging"
+            test -f "$staging/index.html"
+            rm -rf "$APP_DIR/server/build.prev"
+            if [ -d "$APP_DIR/server/build" ]; then
+              mv "$APP_DIR/server/build" "$APP_DIR/server/build.prev"
+            fi
+            mv "$staging" "$APP_DIR/server/build"
+            rm -f "$archive"
+            echo "Frontend is in $APP_DIR/server/build"
+
+      - name: Snapshot server for rollback
+        if: >-
+          (github.event_name == 'push' && needs.changes.outputs.backend == 'true') ||
+          (github.event_name == 'workflow_dispatch' && inputs.deploy_backend == true)
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          APP_DIR: ${{ secrets.VPS_APP_DIR }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 5m
+          script_stop: true
+          envs: APP_DIR
+          script: |
+            set -eu
+            if [ -d "$APP_DIR/server" ]; then
+              tar -czf "$APP_DIR/rollback-server.tgz" \
+                -C "$APP_DIR/server" \
+                --exclude node_modules \
+                --exclude build \
+                --exclude build.prev \
+                --exclude build.staging \
+                --exclude .env \
+                --exclude logs \
+                .
+            fi
+
+      - name: Upload server
+        if: >-
+          (github.event_name == 'push' && needs.changes.outputs.backend == 'true') ||
+          (github.event_name == 'workflow_dispatch' && inputs.deploy_backend == true)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: server/**
+          target: ${{ secrets.VPS_APP_DIR }}
+          overwrite: true
+          rm: false
+          exclude: |
+            server/node_modules/**
+            server/.env
+            server/.env.*
+            server/build/**
+            server/build.prev/**
+            server/logs/**
+
+      - name: Install server dependencies and restart PM2
+        id: restart
+        if: >-
+          (github.event_name == 'push' && needs.changes.outputs.backend == 'true') ||
+          (github.event_name == 'workflow_dispatch' && inputs.deploy_backend == true)
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          APP_DIR: ${{ secrets.VPS_APP_DIR }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 20m
+          script_stop: true
+          envs: APP_DIR
+          script: |
+            set -eu
+            export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+            if [ -z "${APP_DIR:-}" ]; then
+              echo "VPS_APP_DIR secret is empty for this GitHub Environment." >&2
+              exit 1
+            fi
+            if [ -s "$HOME/.nvm/nvm.sh" ]; then
+              export NVM_DIR="$HOME/.nvm"
+              set +e
+              . "$NVM_DIR/nvm.sh"
+              nvm use 20 >/dev/null 2>&1 || nvm use 18 >/dev/null 2>&1
+              set -e
+            fi
+            if ! command -v npm >/dev/null 2>&1; then
+              echo "npm was not found for this SSH user. Install Node.js 20 before deploying." >&2
+              exit 1
+            fi
+            if ! command -v pm2 >/dev/null 2>&1; then
+              npm install -g pm2
+            fi
+            cd "$APP_DIR/server"
+            if [ ! -f .env ]; then
+              echo "Missing $APP_DIR/server/.env. Create it on the server. This workflow does not upload it." >&2
+              exit 1
+            fi
+            npm ci --omit=dev
+            pm2 startOrReload ecosystem.config.js --update-env
+            pm2 save
+
+            raw_port=$(grep -E '^PORT=' .env | head -n 1 | cut -d= -f2- || true)
+            PORT=$(printf '%s' "$raw_port" | sed 's/[[:space:]]*#.*//' | tr -d '[:space:]')
+            if [ -z "$PORT" ]; then
+              echo "PORT is missing from $APP_DIR/server/.env" >&2
+              exit 1
+            fi
+
+            i=0
+            while [ "$i" -lt 20 ]; do
+              if node -e "const http=require('http');const port=process.argv[1];const req=http.get({host:'127.0.0.1',port,path:'/api/v1/health',timeout:4000},res=>process.exit(res.statusCode===200?0:1));req.on('error',()=>process.exit(1));req.on('timeout',()=>{req.destroy();process.exit(1);});" "$PORT"; then
+                echo "Health check passed on port ${PORT}"
+                exit 0
+              fi
+              i=$((i + 1))
+              sleep 3
+            done
+
+            echo "Health check failed on port ${PORT}. Rolling back." >&2
+            pm2 logs --lines 80 --nostream || true
+            if [ -f "$APP_DIR/rollback-server.tgz" ]; then
+              tar -xzf "$APP_DIR/rollback-server.tgz" -C "$APP_DIR/server"
+              npm ci --omit=dev
+              pm2 startOrReload ecosystem.config.js --update-env || true
+              pm2 save || true
+            fi
+            if [ -d "$APP_DIR/server/build.prev" ]; then
+              rm -rf "$APP_DIR/server/build"
+              mv "$APP_DIR/server/build.prev" "$APP_DIR/server/build"
+            fi
+            exit 1
+
+      - name: Public health check
+        id: public_health
+        if: >-
+          always() &&
+          (steps.restart.outcome == 'success' ||
+           (steps.restart.outcome == 'skipped' && steps.extract_frontend.outcome == 'success'))
+        run: |
+          curl -fsSL --retry 5 --retry-delay 5 "${{ needs.resolve.outputs.site_url }}/api/v1/health"
+          curl -fsSL --retry 5 --retry-delay 5 "${{ needs.resolve.outputs.site_url }}/"
+
+      - name: Roll back after public health failure
+        if: always() && steps.public_health.outcome == 'failure'
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          APP_DIR: ${{ secrets.VPS_APP_DIR }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 20m
+          script_stop: true
+          envs: APP_DIR
+          script: |
+            set -eu
+            cd "$APP_DIR/server"
+            if [ -f "$APP_DIR/rollback-server.tgz" ]; then
+              tar -xzf "$APP_DIR/rollback-server.tgz" -C "$APP_DIR/server"
+              if [ -s "$HOME/.nvm/nvm.sh" ]; then
+                export NVM_DIR="$HOME/.nvm"
+                set +e
+                . "$NVM_DIR/nvm.sh"
+                nvm use 20 >/dev/null 2>&1 || nvm use 18 >/dev/null 2>&1
+                set -e
+              fi
+              npm ci --omit=dev
+              pm2 startOrReload ecosystem.config.js --update-env || true
+              pm2 save || true
+            fi
+            if [ -d "$APP_DIR/server/build.prev" ]; then
+              rm -rf "$APP_DIR/server/build"
+              mv "$APP_DIR/server/build.prev" "$APP_DIR/server/build"
+            fi
+            echo "Rolled back after the public health check failed."
+            exit 1
+
+      - name: Drop rollback snapshots
+        if: steps.public_health.outcome == 'success'
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          APP_DIR: ${{ secrets.VPS_APP_DIR }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 5m
+          script_stop: true
+          envs: APP_DIR
+          script: |
+            set -eu
+            rm -rf "$APP_DIR/server/build.prev" "$APP_DIR/rollback-server.tgz"
+            echo "Deployment kept. Rollback snapshots removed."
+
+  summary:
+    name: PASS/FAIL summary
+    runs-on: ubuntu-latest
+    needs: [resolve, changes, quality, deploy]
+    if: always()
+    steps:
+      - name: Download quality results
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: quality-results
+          path: qg
+
+      - name: Publish summary
+        run: |
+          {
+            echo "## Deploy summary"
+            echo "| Check | Result | Detail |"
+            echo "| --- | --- | --- |"
+            if [ -f qg/quality-results.tsv ]; then
+              while IFS='|' read -r name result detail; do
+                [ -n "$name" ] || continue
+                echo "| ${name} | ${result} | ${detail} |"
+              done < qg/quality-results.tsv
+            else
+              echo "| Quality checks | SKIPPED | No client or server changes |"
+            fi
+            echo "| Deploy | ${{ needs.deploy.result }} | ${{ needs.resolve.outputs.site_url }} |"
+            echo "| Public health | ${{ needs.deploy.result == 'success' && 'PASS' || needs.deploy.result }} | /api/v1/health |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ needs.quality.result }}" = "failure" ] || [ "${{ needs.deploy.result }}" = "failure" ]; then
+            exit 1
+          fi

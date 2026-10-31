@@ -1,0 +1,59 @@
+# Nginx reverse proxy for the two Node apps on one Hostinger KVM.
+# Node listens on localhost only from the public internet's point of view:
+#   production  https://www.ucasaapp.com      -> 127.0.0.1:3004
+#   test        https://casai.testatozas.in  -> 127.0.0.1:3005
+#
+# Install:
+#   sudo cp deploy/nginx/cas-sites.conf.example /etc/nginx/sites-available/cas
+#   sudo ln -s /etc/nginx/sites-available/cas /etc/nginx/sites-enabled/cas
+#   sudo nginx -t && sudo systemctl reload nginx
+#   sudo certbot --nginx -d ucasaapp.com -d www.ucasaapp.com -d casai.testatozas.in -d www.casai.testatozas.in
+#
+# Certbot will add the listen 443 ssl blocks. Keep the proxy headers below.
+
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ucasaapp.com www.ucasaapp.com;
+
+    client_max_body_size 5m;
+
+    location / {
+        proxy_pass http://127.0.0.1:3004;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 60s;
+    }
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name casai.testatozas.in www.casai.testatozas.in;
+
+    client_max_body_size 5m;
+
+    location / {
+        proxy_pass http://127.0.0.1:3005;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 60s;
+    }
+}
