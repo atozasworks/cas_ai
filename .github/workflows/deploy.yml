@@ -1,6 +1,7 @@
 # Builds the React app on GitHub and uploads it to server/build on the VPS.
 # Uploads the Node server and restarts PM2 only when server/ changed.
-# The server .env is never uploaded and never overwritten.
+# An existing server/.env on the VPS is never overwritten.
+# If server/.env is missing, the deploy creates it from this job's environment.
 #
 # Branch ucasaapptest_testCICD_testSite_deploy -> GitHub Environment "test"
 #   https://casai.testatozas.in
@@ -673,6 +674,60 @@ jobs:
             server/build.prev/**
             server/logs/**
 
+      - name: Build env file for a first install
+        if: >-
+          (github.event_name == 'push' && needs.changes.outputs.backend == 'true') ||
+          (github.event_name == 'workflow_dispatch' && inputs.deploy_backend == true)
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const keys = [
+            'PM2_APP_NAME','PORT','APP_ENV','NODE_ENV','CLIENT_URL','CORS_ORIGINS','BUILD_PATH',
+            'MONGODB_URI','REDIS_HOST','REDIS_PORT','REDIS_PASSWORD','REDIS_DB',
+            'JWT_SECRET','JWT_EXPIRES_IN',
+            'SMTP_NAME','SMTP_SERVER','SMTP_PORT','SMTP_SECURE','SMTP_EMAIL','SMTP_EMAIL_PASSWORD','SMTP_FROM','SMTP_TLS_REJECT_UNAUTHORIZED',
+            'AI_PROVIDER','OPENAI_API_KEY','GROQ_API_KEY','DEEPSEEK_API_KEY',
+            'GOOGLE_CLIENT_ID','GOOGLE_CLIENT_SECRET','GOOGLE_CALLBACK_URL','GOOGLE_CALLBACK_URLS',
+            'PUBLIC_API_URL','PUBLIC_GOOGLE_CLIENT_ID','PUBLIC_GOOGLE_CLIENT_ID_BY_ORIGIN','REACT_APP_GOOGLE_CLIENT_ID','GOOGLE_MAPS_API_KEY',
+            'PROXIMITY_THRESHOLD_METERS','CRITICAL_DISTANCE_METERS','PROXIMITY_ALERT_METERS','GPS_UPDATE_INTERVAL_MS',
+            'WEIGHT_PROXIMITY','WEIGHT_RELATIVE_SPEED','WEIGHT_DIRECTION_ALIGNMENT','WEIGHT_ACCELERATION',
+            'SOCKET_PING_INTERVAL','SOCKET_PING_TIMEOUT','RATE_LIMIT_WINDOW_MS','RATE_LIMIT_MAX_REQUESTS','LOG_LEVEL',
+            'ATOZAS_SSO_ENABLED','ATOZAS_ISSUER','ATOZAS_CLIENT_ID','ATOZAS_CLIENT_SECRET','ATOZAS_REDIRECT_URI','ATOZAS_SCOPE',
+            'ATOZAS_AUTHORIZE_URL','ATOZAS_TOKEN_URL','ATOZAS_USERINFO_URL','ATOZAS_REVOKE_URL','ATOZAS_TOKEN_AUTH_STYLE',
+            'ATOZAS_HOMEPAGE_KEY','ATOZAS_SESSION_COOKIE_NAME','ATOZAS_SESSION_SECRET','ATOZAS_SESSION_MAX_AGE_DAYS',
+            'ATOZAS_SESSION_COLLECTION','ATOZAS_COOKIE_SECURE','ATOZAS_COOKIE_SAMESITE','ATOZAS_AUTO_REDIRECT'
+          ];
+          for (const key of ['MONGODB_URI', 'JWT_SECRET']) {
+            if (!process.env[key]) {
+              console.error(key + ' is empty in this GitHub Environment.');
+              process.exit(1);
+            }
+          }
+          const lines = keys.map((key) => {
+            const value = process.env[key] ?? '';
+            if (/[\r\n"]/.test(value)) {
+              console.error(key + ' contains a newline or quote, so it cannot be written to .env.');
+              process.exit(1);
+            }
+            return key + '="' + value + '"';
+          });
+          fs.writeFileSync('env.deploy', lines.join('\n') + '\n', { mode: 0o600 });
+          NODE
+
+      - name: Upload env file for a first install
+        if: >-
+          (github.event_name == 'push' && needs.changes.outputs.backend == 'true') ||
+          (github.event_name == 'workflow_dispatch' && inputs.deploy_backend == true)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: env.deploy
+          target: ${{ steps.appdir.outputs.dir }}/server
+          overwrite: true
+
       - name: Install server dependencies and restart PM2
         id: restart
         if: >-
@@ -712,8 +767,33 @@ jobs:
               npm install -g pm2
             fi
             cd "$APP_DIR/server"
-            if [ ! -f .env ]; then
-              echo "Missing $APP_DIR/server/.env. Create it on the server. This workflow does not upload it." >&2
+            env_state=missing
+            if [ -f .env ]; then
+              env_state=keep
+            fi
+            if [ "$env_state" = missing ] && [ -f "$APP_DIR/.env" ]; then
+              env_state=copy
+            fi
+            if [ "$env_state" = missing ] && [ -f env.deploy ]; then
+              env_state=create
+            fi
+            if [ "$env_state" = keep ]; then
+              rm -f env.deploy
+              echo "Kept existing server/.env"
+            fi
+            if [ "$env_state" = copy ]; then
+              cp "$APP_DIR/.env" .env
+              chmod 600 .env
+              rm -f env.deploy
+              echo "Copied the app directory .env into server/.env"
+            fi
+            if [ "$env_state" = create ]; then
+              mv env.deploy .env
+              chmod 600 .env
+              echo "Created server/.env from GitHub Environment variables"
+            fi
+            if [ "$env_state" = missing ]; then
+              echo "Missing $APP_DIR/server/.env and no env.deploy file was uploaded." >&2
               exit 1
             fi
             npm ci --omit=dev
@@ -721,7 +801,7 @@ jobs:
             pm2 save
 
             raw_port=$(grep -E '^PORT=' .env | head -n 1 | cut -d= -f2- || true)
-            PORT=$(printf '%s' "$raw_port" | sed 's/[[:space:]]*#.*//' | tr -d '[:space:]')
+            PORT=$(printf '%s' "$raw_port" | sed 's/[[:space:]]*#.*//' | tr -d '[:space:]"'"'"'')
             if [ -z "$PORT" ]; then
               echo "PORT is missing from $APP_DIR/server/.env" >&2
               exit 1
