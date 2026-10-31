@@ -156,8 +156,15 @@ jobs:
           set +e
           npm ci --prefix server > "$RUNNER_TEMP/install-server.txt" 2>&1
           code=$?
-          if [ "$code" -eq 0 ]; then result=PASS; else result=FAIL; fi
-          echo "Server install|$result|npm ci" >> quality-results.tsv
+          if [ "$code" -eq 0 ]; then
+            result=PASS
+            detail="npm ci"
+          else
+            result=FAIL
+            detail=$(grep -E 'npm error' "$RUNNER_TEMP/install-server.txt" | tail -n 1 | tr '|' '/')
+            [ -n "$detail" ] || detail="npm ci failed"
+          fi
+          echo "Server install|$result|$detail" >> quality-results.tsv
           cat "$RUNNER_TEMP/install-server.txt"
           exit "$code"
 
@@ -168,8 +175,15 @@ jobs:
           set +e
           npm ci --prefix client > "$RUNNER_TEMP/install-client.txt" 2>&1
           code=$?
-          if [ "$code" -eq 0 ]; then result=PASS; else result=FAIL; fi
-          echo "Client install|$result|npm ci" >> quality-results.tsv
+          if [ "$code" -eq 0 ]; then
+            result=PASS
+            detail="npm ci"
+          else
+            result=FAIL
+            detail=$(grep -E 'npm error' "$RUNNER_TEMP/install-client.txt" | tail -n 1 | tr '|' '/')
+            [ -n "$detail" ] || detail="npm ci failed"
+          fi
+          echo "Client install|$result|$detail" >> quality-results.tsv
           cat "$RUNNER_TEMP/install-client.txt"
           exit "$code"
 
@@ -276,7 +290,14 @@ jobs:
           set +e
           npm run build > "$RUNNER_TEMP/build.txt" 2>&1
           code=$?
-          if [ "$code" -eq 0 ] && [ -f build/index.html ]; then result=PASS; detail="client/build"; else result=FAIL; detail="client build failed"; fi
+          if [ "$code" -eq 0 ] && [ -f build/index.html ]; then
+            result=PASS
+            detail="client/build"
+          else
+            result=FAIL
+            detail=$(grep -E 'error|Error|Failed' "$RUNNER_TEMP/build.txt" | tail -n 1 | tr '|' '/')
+            [ -n "$detail" ] || detail="client build failed"
+          fi
           echo "Production build|$result|$detail" >> "$GITHUB_WORKSPACE/quality-results.tsv"
           cat "$RUNNER_TEMP/build.txt"
           exit "$code"
@@ -286,6 +307,10 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          if [ ! -f client/build/index.html ]; then
+            echo "Lighthouse|FAIL|client/build/index.html is missing" >> quality-results.tsv
+            exit 1
+          fi
           npx --yes serve@14 -s -l tcp://127.0.0.1:4173 client/build > "$RUNNER_TEMP/serve.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/serve.pid"
           ready=0
