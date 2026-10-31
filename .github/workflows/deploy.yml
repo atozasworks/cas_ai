@@ -508,7 +508,10 @@ jobs:
           (github.event_name == 'push' && needs.changes.outputs.frontend == 'true') ||
           (github.event_name == 'workflow_dispatch' && inputs.deploy_frontend == true)
         working-directory: client
-        run: npm ci
+        env:
+          # Job NODE_ENV=production would omit devDependencies. The client build needs them.
+          NODE_ENV: development
+        run: npm ci --include=dev
 
       - name: Build frontend
         if: >-
