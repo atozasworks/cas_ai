@@ -493,6 +493,22 @@ jobs:
       - name: Show target
         run: echo "Deploying ${{ needs.resolve.outputs.environment }} to ${{ needs.resolve.outputs.site_url }}"
 
+      - name: Normalize remote app directory
+        id: appdir
+        env:
+          APP_DIR_RAW: ${{ secrets.VPS_APP_DIR }}
+        run: |
+          dir=$(printf '%s' "$APP_DIR_RAW" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          if [ -z "$dir" ]; then
+            echo "VPS_APP_DIR secret is empty for this GitHub Environment." >&2
+            exit 1
+          fi
+          if [ "${dir#/}" = "$dir" ]; then
+            echo "VPS_APP_DIR must be an absolute path." >&2
+            exit 1
+          fi
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
       - name: Setup Node
         if: >-
           (github.event_name == 'push' && needs.changes.outputs.frontend == 'true') ||
@@ -535,7 +551,7 @@ jobs:
       - name: Prepare remote directory
         uses: appleboy/ssh-action@v1.2.0
         env:
-          APP_DIR: ${{ secrets.VPS_APP_DIR }}
+          APP_DIR: ${{ steps.appdir.outputs.dir }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -567,7 +583,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
           source: client-build.tar.gz
-          target: ${{ secrets.VPS_APP_DIR }}
+          target: ${{ steps.appdir.outputs.dir }}
           overwrite: true
 
       - name: Extract frontend into server/build
@@ -577,7 +593,7 @@ jobs:
           (github.event_name == 'workflow_dispatch' && inputs.deploy_frontend == true)
         uses: appleboy/ssh-action@v1.2.0
         env:
-          APP_DIR: ${{ secrets.VPS_APP_DIR }}
+          APP_DIR: ${{ steps.appdir.outputs.dir }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -612,7 +628,7 @@ jobs:
           (github.event_name == 'workflow_dispatch' && inputs.deploy_backend == true)
         uses: appleboy/ssh-action@v1.2.0
         env:
-          APP_DIR: ${{ secrets.VPS_APP_DIR }}
+          APP_DIR: ${{ steps.appdir.outputs.dir }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -646,7 +662,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
           source: server/**
-          target: ${{ secrets.VPS_APP_DIR }}
+          target: ${{ steps.appdir.outputs.dir }}
           overwrite: true
           rm: false
           exclude: |
@@ -664,7 +680,7 @@ jobs:
           (github.event_name == 'workflow_dispatch' && inputs.deploy_backend == true)
         uses: appleboy/ssh-action@v1.2.0
         env:
-          APP_DIR: ${{ secrets.VPS_APP_DIR }}
+          APP_DIR: ${{ steps.appdir.outputs.dir }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -748,7 +764,7 @@ jobs:
         if: always() && steps.public_health.outcome == 'failure'
         uses: appleboy/ssh-action@v1.2.0
         env:
-          APP_DIR: ${{ secrets.VPS_APP_DIR }}
+          APP_DIR: ${{ steps.appdir.outputs.dir }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -784,7 +800,7 @@ jobs:
         if: steps.public_health.outcome == 'success'
         uses: appleboy/ssh-action@v1.2.0
         env:
-          APP_DIR: ${{ secrets.VPS_APP_DIR }}
+          APP_DIR: ${{ steps.appdir.outputs.dir }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
