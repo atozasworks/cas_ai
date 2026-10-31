@@ -519,6 +519,8 @@ jobs:
           CI: false
           GENERATE_SOURCEMAP: false
           DISABLE_ESLINT_PLUGIN: true
+          # Job env BUILD_PATH is the VPS folder. react-scripts would try to mkdir it here.
+          BUILD_PATH: build
         run: npm run build
 
       - name: Pack frontend build
