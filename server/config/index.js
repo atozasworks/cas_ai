@@ -105,8 +105,19 @@ for (const entry of parseCsv(process.env.PUBLIC_GOOGLE_CLIENT_ID_BY_ORIGIN)) {
   const clientId = entry.slice(eq + 1).trim();
   if (origin && clientId) googleClientIdByOrigin.set(origin, clientId);
 }
+const testSiteHosts = new Set(['casai.testatozas.in', 'www.casai.testatozas.in']);
 const googleClientIdForOrigin = (origin) => {
   const normalized = normalizeOrigin(origin);
+  let host = '';
+  try {
+    host = new URL(normalized).hostname;
+  } catch (_) {
+    host = '';
+  }
+  // The test site uses this server's own client. The origin map points it at the production client, which Google rejects.
+  if (testSiteHosts.has(host)) {
+    return String(process.env.GOOGLE_CLIENT_ID || publicGoogleClientId || '').trim();
+  }
   if (normalized && googleClientIdByOrigin.has(normalized)) {
     return googleClientIdByOrigin.get(normalized);
   }
