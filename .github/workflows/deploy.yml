@@ -715,7 +715,8 @@ jobs:
             }
           }
           const lines = keys.map((key) => key + '=' + quote(clean(process.env[key])));
-          fs.writeFileSync('env.deploy', lines.join('\n') + '\n', { mode: 0o600 });
+          fs.writeFileSync('env.deploy', lines.join('\n') + '\n', { mode: 0o644 });
+          fs.chmodSync('env.deploy', 0o644);
           NODE
 
       - name: Upload env file for a first install
