@@ -40,7 +40,7 @@ export const loadRuntimeConfig = async () => {
         atozasAutoRedirect: data?.atozasAutoRedirect === true,
       };
     } catch (_) {
-      // Keep fallback values if runtime config is unavailable.........
+      // Keep fallback values if runtime config is unavailable..........
     }
 
     return runtimeConfig;
