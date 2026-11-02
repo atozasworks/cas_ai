@@ -1,5 +1,6 @@
 const FALLBACK_API_URL = String(process.env.REACT_APP_API_URL || '/api/v1').trim();
 const FALLBACK_GOOGLE_CLIENT_ID = String(process.env.REACT_APP_GOOGLE_CLIENT_ID || '').trim();
+const FALLBACK_ATOZAS_SSO_ENABLED = process.env.REACT_APP_ATOZAS_SSO_ENABLED !== 'false';
 
 const normalizeApiUrl = (value) => {
   const url = String(value || '').trim();
@@ -12,6 +13,8 @@ const APP_CONFIG_ENDPOINT = `${normalizeApiUrl(FALLBACK_API_URL)}/app-config`;
 let runtimeConfig = {
   apiUrl: normalizeApiUrl(FALLBACK_API_URL),
   googleClientId: FALLBACK_GOOGLE_CLIENT_ID,
+  atozasSsoEnabled: FALLBACK_ATOZAS_SSO_ENABLED,
+  atozasAutoRedirect: false,
 };
 
 let loadPromise = null;
@@ -33,6 +36,8 @@ export const loadRuntimeConfig = async () => {
       runtimeConfig = {
         apiUrl: normalizeApiUrl(data?.apiUrl || runtimeConfig.apiUrl),
         googleClientId: String(data?.googleClientId || runtimeConfig.googleClientId || '').trim(),
+        atozasSsoEnabled: data?.atozasSsoEnabled === true || FALLBACK_ATOZAS_SSO_ENABLED,
+        atozasAutoRedirect: data?.atozasAutoRedirect === true,
       };
     } catch (_) {
       // Keep fallback values if runtime config is unavailable.

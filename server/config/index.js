@@ -105,19 +105,8 @@ for (const entry of parseCsv(process.env.PUBLIC_GOOGLE_CLIENT_ID_BY_ORIGIN)) {
   const clientId = entry.slice(eq + 1).trim();
   if (origin && clientId) googleClientIdByOrigin.set(origin, clientId);
 }
-const testSiteHosts = new Set(['casai.testatozas.in', 'www.casai.testatozas.in']);
 const googleClientIdForOrigin = (origin) => {
   const normalized = normalizeOrigin(origin);
-  let host = '';
-  try {
-    host = new URL(normalized).hostname;
-  } catch (_) {
-    host = '';
-  }
-  // The test site uses this server's own client. The origin map points it at the production client, which Google rejects.
-  if (testSiteHosts.has(host)) {
-    return String(process.env.GOOGLE_CLIENT_ID || publicGoogleClientId || '').trim();
-  }
   if (normalized && googleClientIdByOrigin.has(normalized)) {
     return googleClientIdByOrigin.get(normalized);
   }
@@ -189,7 +178,37 @@ const config = {
 
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    callbackUrl: process.env.GOOGLE_CALLBACK_URL || '',
     clientIds: googleClientIds,
+  },
+
+  atozas: {
+    enabled: process.env.ATOZAS_SSO_ENABLED === 'true',
+    autoRedirect: process.env.ATOZAS_AUTO_REDIRECT === 'true',
+    issuer: String(process.env.ATOZAS_ISSUER || '').trim().replace(/\/+$/, ''),
+    clientId: String(process.env.ATOZAS_CLIENT_ID || '').trim() === 'ucasapp'
+      ? 'ucasaapp'
+      : String(process.env.ATOZAS_CLIENT_ID || '').trim(),
+    clientSecret: String(process.env.ATOZAS_CLIENT_SECRET || '').trim(),
+    redirectUri: String(process.env.ATOZAS_REDIRECT_URI || '').trim(),
+    scope: String(process.env.ATOZAS_SCOPE || 'openid email profile').trim(),
+    authorizeUrl: String(process.env.ATOZAS_AUTHORIZE_URL || '').trim(),
+    tokenUrl: String(process.env.ATOZAS_TOKEN_URL || '').trim(),
+    userinfoUrl: String(process.env.ATOZAS_USERINFO_URL || '').trim(),
+    revokeUrl: String(process.env.ATOZAS_REVOKE_URL || '').trim(),
+    tokenAuthStyle: String(process.env.ATOZAS_TOKEN_AUTH_STYLE || 'body').trim().toLowerCase(),
+    homepageKey: String(process.env.ATOZAS_HOMEPAGE_KEY || '').trim(),
+    sessionCookieName: String(process.env.ATOZAS_SESSION_COOKIE_NAME || 'cas_atozas_sid').trim(),
+    sessionSecret: String(process.env.ATOZAS_SESSION_SECRET || '').trim(),
+    sessionMaxAgeDays: parseInt(process.env.ATOZAS_SESSION_MAX_AGE_DAYS, 10) || 30,
+    sessionCollection: String(process.env.ATOZAS_SESSION_COLLECTION || 'atozas_sessions').trim(),
+    cookieSecure: process.env.ATOZAS_COOKIE_SECURE === 'true'
+      ? true
+      : process.env.ATOZAS_COOKIE_SECURE === 'false'
+        ? false
+        : process.env.NODE_ENV === 'production',
+    cookieSameSite: String(process.env.ATOZAS_COOKIE_SAMESITE || 'lax').trim().toLowerCase(),
   },
 
   publicClient: {

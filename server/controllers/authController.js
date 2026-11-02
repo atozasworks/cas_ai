@@ -27,6 +27,8 @@ const decodeJwtPayload = (token) => {
 const signToken = (id) =>
   jwt.sign({ id }, config.jwt.secret, { expiresIn: config.jwt.expiresIn });
 
+exports.signToken = signToken;
+
 const sendTokenResponse = (user, statusCode, res) => {
   const token = signToken(user._id);
   const safeUser = user.toSafeObject ? user.toSafeObject() : user;
@@ -378,20 +380,85 @@ exports.googleAuth = asyncHandler(async (req, res, next) => {
     return next(new AppError('Google account email is not verified', 401));
   }
 
+  const user = await findOrCreateGoogleUser(payload);
+  return sendTokenResponse(user, 200, res);
+});
+
+const frontendOrigin = () => String(process.env.CLIENT_URL || '').replace(/\/+$/, '');
+
+const googleRedirectUri = (req) => {
+  if (config.google.callbackUrl) return config.google.callbackUrl;
+  const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
+  const host = req.get('x-forwarded-host') || req.get('host');
+  return `${proto}://${host}/api/v1/auth/google/callback`;
+};
+
+exports.googleStart = asyncHandler(async (req, res, next) => {
+  const clientId = config.google.clientId;
+  const clientSecret = config.google.clientSecret;
+  const redirectUri = googleRedirectUri(req);
+  if (!clientId || !clientSecret || !redirectUri) {
+    return next(new AppError('Google Sign-In is not configured on the server', 500));
+  }
+  const state = jwt.sign(
+    { purpose: 'google-oauth', redirectUri },
+    config.jwt.secret,
+    { expiresIn: '10m' }
+  );
+  const client = new OAuth2Client(clientId, clientSecret, redirectUri);
+  const url = client.generateAuthUrl({
+    access_type: 'online',
+    prompt: 'select_account',
+    scope: ['openid', 'email', 'profile'],
+    state,
+  });
+  return res.redirect(url);
+});
+
+exports.googleCallback = asyncHandler(async (req, res) => {
+  const loginUrl = `${frontendOrigin() || ''}/login`;
+  const fail = () => res.redirect(`${loginUrl}?google=failed`);
+  const { code, state, error } = req.query;
+  if (error || !code || !state) return fail();
+
+  let redirectUri = googleRedirectUri(req);
+  try {
+    const decoded = jwt.verify(String(state), config.jwt.secret);
+    if (decoded?.purpose !== 'google-oauth' || !decoded.redirectUri) return fail();
+    redirectUri = decoded.redirectUri;
+  } catch (_) {
+    return fail();
+  }
+
+  try {
+    const client = new OAuth2Client(config.google.clientId, config.google.clientSecret, redirectUri);
+    const { tokens } = await client.getToken(String(code));
+    if (!tokens.id_token) return fail();
+    const ticket = await client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: config.google.clientId || getGoogleAudiences(),
+    });
+    const payload = ticket.getPayload();
+    if (!payload?.email || payload.email_verified === false) return fail();
+    const user = await findOrCreateGoogleUser(payload);
+    const token = signToken(user._id);
+    return res.redirect(`${loginUrl}#token=${encodeURIComponent(token)}`);
+  } catch (err) {
+    logger.warn('Google redirect login failed', { reason: err.message });
+    return fail();
+  }
+});
+
+async function findOrCreateGoogleUser(payload) {
   const email = payload.email.toLowerCase();
   const googleName = payload.name || '';
-
-  // Single DB round-trip for returning users (find + lastLogin update)
   let user = await User.findOneAndUpdate(
     { email },
     { $set: { lastLogin: new Date() } },
     { new: true }
   );
-  if (user) {
-    return sendTokenResponse(user, 200, res);
-  }
+  if (user) return user;
 
-  // New user — create account, respond immediately, score row in background
   const generatedPassword = crypto.randomBytes(24).toString('hex');
   user = await User.create({
     name: googleName,
@@ -399,11 +466,11 @@ exports.googleAuth = asyncHandler(async (req, res, next) => {
     password: generatedPassword,
     phone: '',
   });
-  sendTokenResponse(user, 201, res);
   DriverScore.create({ userId: user._id }).catch((err) => {
     logger.warn('DriverScore create failed after Google signup', { err: err.message, userId: user._id });
   });
-});
+  return user;
+}
 
 exports.getMe = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);

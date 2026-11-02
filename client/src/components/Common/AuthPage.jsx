@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { FiShield, FiMail, FiLock, FiUser, FiPhone, FiArrowLeft } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import { loadRuntimeConfig } from '../../services/runtimeConfig';
+import { getRuntimeConfig, loadRuntimeConfig } from '../../services/runtimeConfig';
 import './AuthPage.css';
 
 // Sign-up steps: 'details' (google + name, email, phone) -> 'otp' -> done
@@ -58,10 +58,13 @@ export default function AuthPage({ initialMode = 'login' }) {
   const [otpSent, setOtpSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [googleClientId, setGoogleClientId] = useState('');
+  const [atozasSsoEnabled, setAtozasSsoEnabled] = useState(true);
+  const [atozasAutoRedirect, setAtozasAutoRedirect] = useState(() => getRuntimeConfig().atozasAutoRedirect === true);
   const [signupStep, setSignupStep] = useState(SIGNUP_STEPS.DETAILS);
   const { login, requestOtp, register, googleAuth } = useAuth();
   const googleBtnRef = useRef(null);
   const loginGoogleBtnRef = useRef(null);
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     const shouldLoginMode = initialMode !== 'register';
@@ -94,10 +97,29 @@ export default function AuthPage({ initialMode = 'login' }) {
   useEffect(() => {
     let active = true;
     loadRuntimeConfig().then((cfg) => {
-      if (active) setGoogleClientId(cfg.googleClientId || '');
+      if (!active) return;
+      setGoogleClientId(cfg.googleClientId || '');
+      setAtozasSsoEnabled(cfg.atozasSsoEnabled !== false);
+      setAtozasAutoRedirect(cfg.atozasAutoRedirect === true);
     });
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    const ssoError = searchParams.get('sso_error');
+    if (!ssoError) return;
+    toast.error('ATOZAS sign-in failed. Please try again.');
+    const next = new URLSearchParams(searchParams);
+    next.delete('sso_error');
+    const query = next.toString();
+    navigate({ pathname: '/login', search: query ? `?${query}` : '' }, { replace: true });
+  }, [searchParams, navigate]);
+
+  useEffect(() => {
+    if (!isLogin || !atozasSsoEnabled || !atozasAutoRedirect) return;
+    if (searchParams.get('sso_error')) return;
+    window.location.replace(`/api/auth/atozas?returnTo=%2Fhome&t=${Date.now()}`);
+  }, [isLogin, atozasSsoEnabled, atozasAutoRedirect, searchParams]);
 
   /* ── Initialize GIS and render Google button ── */
   useEffect(() => {
@@ -282,6 +304,11 @@ export default function AuthPage({ initialMode = 'login' }) {
           Google not configured
         </button>
       )}
+
+      <a href={`/api/auth/atozas?returnTo=%2Fhome&t=${Date.now()}`} className="auth-page__atozas-btn">
+        <span className="auth-page__atozas-mark" aria-hidden="true">A</span>
+        Continue with ATOZAS
+      </a>
 
       <button type="button" onClick={() => navigate('/')} className="auth-page__home-btn">
         <FiArrowLeft aria-hidden="true" />

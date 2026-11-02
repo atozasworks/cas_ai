@@ -30,6 +30,8 @@ router.get('/app-config', (req, res) => {
     success: true,
     apiUrl: config.publicClient.apiUrl || '/api/v1',
     googleClientId: config.publicClient.googleClientIdForOrigin(origin) || '',
+    atozasSsoEnabled: config.atozas.enabled === true,
+    atozasAutoRedirect: config.atozas.enabled === true && config.atozas.autoRedirect === true,
   });
 });
 

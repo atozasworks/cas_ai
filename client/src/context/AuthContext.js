@@ -1,16 +1,47 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { authAPI } from '../services/api';
+import { getRuntimeConfig } from '../services/runtimeConfig';
 
 const AuthContext = createContext(null);
 
+function tokenFromHash() {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const token = params.get('token');
+  if (!token) return null;
+  localStorage.setItem('cas_token', token);
+  window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  return token;
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('cas_token'));
+  const [token, setToken] = useState(() => tokenFromHash() || localStorage.getItem('cas_token'));
   const [loading, setLoading] = useState(true);
   const skipNextLoadUserRef = useRef(false);
 
+  const applyAuthSession = (data) => {
+    if (!data?.token || !data?.user) return false;
+    localStorage.setItem('cas_token', data.token);
+    localStorage.setItem('cas_user', JSON.stringify(data.user));
+    skipNextLoadUserRef.current = true;
+    setUser(data.user);
+    setToken(data.token);
+    return true;
+  };
+
   const loadUser = useCallback(async () => {
     if (!token) {
+      if (getRuntimeConfig().atozasSsoEnabled) {
+        try {
+          const data = await authAPI.getAtozasMe();
+          if (data?.authenticated !== false && applyAuthSession(data)) {
+            setLoading(false);
+            return;
+          }
+        } catch {
+          // No ATOZAS session — continue as logged out.
+        }
+      }
       setLoading(false);
       return;
     }
@@ -71,7 +102,14 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    if (getRuntimeConfig().atozasSsoEnabled) {
+      try {
+        await authAPI.atozasLogout();
+      } catch {
+        // Local logout still proceeds if the ATOZAS session is already gone.
+      }
+    }
     localStorage.removeItem('cas_token');
     localStorage.removeItem('cas_user');
     setToken(null);

@@ -14,6 +14,7 @@ const { initializeSocket } = require('./sockets');
 const routes = require('./routes');
 const { notFoundHandler, globalErrorHandler } = require('./middleware/errorHandler');
 const logger = require('./middleware/logger');
+const { isAtozasSsoEnabled, attachAtozasSession, ATOZAS_ROUTE_PREFIXES } = require('./middleware/atozasSession');
 
 const app = express();
 const server = http.createServer(app);
@@ -41,7 +42,9 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 if (config.server.env === 'development') {
-  app.use(morgan('dev'));
+  app.use(morgan('dev', {
+    skip: (req) => req.path.startsWith('/auth/atozas/callback'),
+  }));
 }
 
 app.use(rateLimit({
@@ -64,6 +67,17 @@ app.use('/api/v1', (req, res, next) => {
   }
   return next();
 }, routes);
+
+if (isAtozasSsoEnabled()) {
+  const sessionAttached = attachAtozasSession(app);
+  if (sessionAttached) {
+    const atozasRoutes = require('./routes/atozasRoutes');
+    ATOZAS_ROUTE_PREFIXES.forEach((prefix) => app.use(prefix, atozasRoutes));
+    logger.info('ATOZAS SSO enabled as OIDC client');
+  } else {
+    logger.warn('ATOZAS SSO is enabled but the session store was not attached');
+  }
+}
 
 // ───────── Serve React Build ─────────
 // CI uploads the GitHub-built client into server/build. That folder wins when
@@ -132,7 +146,7 @@ app.use((req, res, next) => {
 });
 
 app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api/')) return next();
+  if (req.path.startsWith('/api/') || req.path.startsWith('/auth/')) return next();
   refreshBuild();
   if (!activeBuildPath) return next();
   res.setHeader('Cache-Control', 'no-cache');
