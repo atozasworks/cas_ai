@@ -9,6 +9,8 @@ router.post('/request-otp', validate(schemas.requestOtp), authController.request
 router.post('/register-otp', validate(schemas.registerOtp), authController.registerWithOtp);
 router.post('/verify-signup-otp', validate(schemas.verifySignupOtp), authController.verifySignupOtp);
 router.post('/login', validate(schemas.login), authController.login);
+router.get('/google', authController.googleStart);
+router.get('/google/callback', authController.googleCallback);
 router.post('/google', validate(schemas.googleAuth), authController.googleAuth);
 router.get('/me', protect, authController.getMe);
 router.patch('/profile', protect, validate(schemas.updateProfile), authController.updateProfile);

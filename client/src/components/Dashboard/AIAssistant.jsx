@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { aiAPI } from '../../services/api';
 import { useSocket } from '../../context/SocketContext';
-import { FiMessageSquare, FiSend, FiCpu } from 'react-icons/fi';
+import { FiSend, FiCpu } from 'react-icons/fi';
 
 export default function AIAssistant() {
   const [messages, setMessages] = useState([

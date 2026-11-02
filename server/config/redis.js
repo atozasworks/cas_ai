@@ -10,6 +10,7 @@ const createRedisClient = (label = 'primary') => {
     host: config.redis.host,
     port: config.redis.port,
     password: config.redis.password,
+    db: config.redis.db,
     retryStrategy: (times) => {
       if (times > config.redis.maxRetries) {
         logger.error(`Redis ${label}: max retries exceeded`);

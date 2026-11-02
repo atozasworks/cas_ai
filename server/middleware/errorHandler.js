@@ -1,5 +1,11 @@
 const logger = require('./logger');
 
+const redactUrl = (url) =>
+  String(url || '').replace(
+    /([?&](code|client_secret|access_token|refresh_token|id_token|code_verifier)=)[^&]*/gi,
+    '$1[redacted]'
+  );
+
 class AppError extends Error {
   constructor(message, statusCode, isOperational = true) {
     super(message);
@@ -27,7 +33,7 @@ const globalErrorHandler = (err, req, res, _next) => {
     message: err.message,
     statusCode: err.statusCode,
     stack: err.stack,
-    url: req.originalUrl,
+    url: redactUrl(req.originalUrl),
     method: req.method,
     ip: req.ip,
   });

@@ -58,6 +58,8 @@ const localDevOrigins = [
   'http://127.0.0.1:7760',
 ];
 const configuredOrigins = parseOrigins(process.env.CORS_ORIGINS || process.env.CLIENT_URL);
+const redisDbParsed = parseInt(process.env.REDIS_DB, 10);
+const redisDb = Number.isNaN(redisDbParsed) ? 0 : redisDbParsed;
 const allowedOrigins = Array.from(
   new Set(
     process.env.NODE_ENV === 'development'
@@ -89,15 +91,32 @@ const isOriginAllowed = (origin) => {
   }
   return false;
 };
-const googleClientIds = Array.from(
-  new Set(parseCsv(process.env.GOOGLE_CLIENT_IDS || process.env.GOOGLE_CLIENT_ID))
-);
 const publicApiUrl = process.env.PUBLIC_API_URL || process.env.REACT_APP_API_URL || '/api/v1';
 const publicGoogleClientId =
   process.env.PUBLIC_GOOGLE_CLIENT_ID
   || process.env.REACT_APP_GOOGLE_CLIENT_ID
   || process.env.GOOGLE_CLIENT_ID
   || '';
+const googleClientIdByOrigin = new Map();
+for (const entry of parseCsv(process.env.PUBLIC_GOOGLE_CLIENT_ID_BY_ORIGIN)) {
+  const eq = entry.indexOf('=');
+  if (eq <= 0) continue;
+  const origin = normalizeOrigin(entry.slice(0, eq));
+  const clientId = entry.slice(eq + 1).trim();
+  if (origin && clientId) googleClientIdByOrigin.set(origin, clientId);
+}
+const googleClientIdForOrigin = (origin) => {
+  const normalized = normalizeOrigin(origin);
+  if (normalized && googleClientIdByOrigin.has(normalized)) {
+    return googleClientIdByOrigin.get(normalized);
+  }
+  return String(publicGoogleClientId || '').trim();
+};
+const googleClientIds = Array.from(new Set([
+  ...parseCsv(process.env.GOOGLE_CLIENT_IDS || process.env.GOOGLE_CLIENT_ID),
+  publicGoogleClientId,
+  ...googleClientIdByOrigin.values(),
+].map((id) => String(id || '').trim()).filter(Boolean)));
 
 const config = {
   server: {
@@ -121,6 +140,7 @@ const config = {
     host: process.env.REDIS_HOST || '127.0.0.1',
     port: parseInt(process.env.REDIS_PORT, 10) || 6379,
     password: process.env.REDIS_PASSWORD || undefined,
+    db: redisDb,
     retryDelayMs: 3000,
     maxRetries: 3,
   },
@@ -158,12 +178,43 @@ const config = {
 
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    callbackUrl: process.env.GOOGLE_CALLBACK_URL || '',
     clientIds: googleClientIds,
+  },
+
+  atozas: {
+    enabled: process.env.ATOZAS_SSO_ENABLED === 'true',
+    autoRedirect: process.env.ATOZAS_AUTO_REDIRECT === 'true',
+    issuer: String(process.env.ATOZAS_ISSUER || '').trim().replace(/\/+$/, ''),
+    clientId: String(process.env.ATOZAS_CLIENT_ID || '').trim() === 'ucasapp'
+      ? 'ucasaapp'
+      : String(process.env.ATOZAS_CLIENT_ID || '').trim(),
+    clientSecret: String(process.env.ATOZAS_CLIENT_SECRET || '').trim(),
+    redirectUri: String(process.env.ATOZAS_REDIRECT_URI || '').trim(),
+    scope: String(process.env.ATOZAS_SCOPE || 'openid email profile').trim(),
+    authorizeUrl: String(process.env.ATOZAS_AUTHORIZE_URL || '').trim(),
+    tokenUrl: String(process.env.ATOZAS_TOKEN_URL || '').trim(),
+    userinfoUrl: String(process.env.ATOZAS_USERINFO_URL || '').trim(),
+    revokeUrl: String(process.env.ATOZAS_REVOKE_URL || '').trim(),
+    tokenAuthStyle: String(process.env.ATOZAS_TOKEN_AUTH_STYLE || 'body').trim().toLowerCase(),
+    homepageKey: String(process.env.ATOZAS_HOMEPAGE_KEY || '').trim(),
+    sessionCookieName: String(process.env.ATOZAS_SESSION_COOKIE_NAME || 'cas_atozas_sid').trim(),
+    sessionSecret: String(process.env.ATOZAS_SESSION_SECRET || '').trim(),
+    sessionMaxAgeDays: parseInt(process.env.ATOZAS_SESSION_MAX_AGE_DAYS, 10) || 30,
+    sessionCollection: String(process.env.ATOZAS_SESSION_COLLECTION || 'atozas_sessions').trim(),
+    cookieSecure: process.env.ATOZAS_COOKIE_SECURE === 'true'
+      ? true
+      : process.env.ATOZAS_COOKIE_SECURE === 'false'
+        ? false
+        : process.env.NODE_ENV === 'production',
+    cookieSameSite: String(process.env.ATOZAS_COOKIE_SAMESITE || 'lax').trim().toLowerCase(),
   },
 
   publicClient: {
     apiUrl: String(publicApiUrl || '/api/v1').trim(),
     googleClientId: String(publicGoogleClientId || '').trim(),
+    googleClientIdForOrigin,
   },
 
   cors: {

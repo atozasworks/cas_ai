@@ -14,6 +14,7 @@ const { initializeSocket } = require('./sockets');
 const routes = require('./routes');
 const { notFoundHandler, globalErrorHandler } = require('./middleware/errorHandler');
 const logger = require('./middleware/logger');
+const { isAtozasSsoEnabled, attachAtozasSession, ATOZAS_ROUTE_PREFIXES } = require('./middleware/atozasSession');
 
 const app = express();
 const server = http.createServer(app);
@@ -41,7 +42,9 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 if (config.server.env === 'development') {
-  app.use(morgan('dev'));
+  app.use(morgan('dev', {
+    skip: (req) => req.path.startsWith('/auth/atozas/callback'),
+  }));
 }
 
 app.use(rateLimit({
@@ -65,30 +68,90 @@ app.use('/api/v1', (req, res, next) => {
   return next();
 }, routes);
 
-// ───────── Serve React Build ─────────
+if (isAtozasSsoEnabled()) {
+  const sessionAttached = attachAtozasSession(app);
+  if (sessionAttached) {
+    const atozasRoutes = require('./routes/atozasRoutes');
+    ATOZAS_ROUTE_PREFIXES.forEach((prefix) => app.use(prefix, atozasRoutes));
+    logger.info('ATOZAS SSO enabled as OIDC client');
+  } else {
+    logger.warn('ATOZAS SSO is enabled but the session store was not attached');
+  }
+}
 
-const PROD_BUILD = '/home/ucasaapp/htdocs/ucasaapp.com/build';
-const DEV_BUILD = path.join(__dirname, '..', 'client', 'build');
-const BUILD_PATH = process.env.BUILD_PATH || PROD_BUILD;
+// ───────── Serve React Build ─────────
+// CI uploads the GitHub-built client into server/build. That folder wins when
+// index.html is present, so a frontend-only deploy is picked up without a restart.
+// BUILD_PATH and the old Hostinger path remain fallbacks until the first upload.
 
 const fs = require('fs');
-if (fs.existsSync(BUILD_PATH)) {
-  app.use(express.static(BUILD_PATH));
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api/')) return next();
-    res.sendFile(path.join(BUILD_PATH, 'index.html'));
-  });
-  logger.info(`Serving React build from: ${BUILD_PATH}`);
-} else if (fs.existsSync(DEV_BUILD)) {
-  app.use(express.static(DEV_BUILD));
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api/')) return next();
-    res.sendFile(path.join(DEV_BUILD, 'index.html'));
-  });
-  logger.info(`Serving React build from: ${DEV_BUILD}`);
-} else {
-  logger.warn(`No build folder found at ${BUILD_PATH} or ${DEV_BUILD}`);
+
+function resolveBuildPath() {
+  const candidates = [
+    path.join(__dirname, 'build'),
+    process.env.BUILD_PATH,
+    '/home/ucasaapp/htdocs/ucasaapp.com/build',
+    path.join(__dirname, '..', 'client', 'build'),
+  ];
+  const seen = new Set();
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const resolved = path.resolve(candidate);
+    if (seen.has(resolved)) continue;
+    seen.add(resolved);
+    if (fs.existsSync(path.join(resolved, 'index.html'))) return resolved;
+  }
+
+  return null;
 }
+
+let activeBuildPath = null;
+let staticMiddleware = (req, res, next) => next();
+let buildCheckedAt = 0;
+
+function refreshBuild() {
+  const now = Date.now();
+  if (activeBuildPath && now - buildCheckedAt < 2000) return;
+  buildCheckedAt = now;
+
+  const buildPath = resolveBuildPath();
+  if (buildPath === activeBuildPath) return;
+
+  activeBuildPath = buildPath;
+  if (!buildPath) {
+    staticMiddleware = (req, res, next) => next();
+    logger.warn('No React build found. Checked server/build, BUILD_PATH, and client/build.');
+    return;
+  }
+
+  staticMiddleware = express.static(buildPath, {
+    etag: true,
+    maxAge: '1h',
+    setHeaders(res, filePath) {
+      const base = path.basename(filePath);
+      if (base === 'index.html' || base === 'service-worker.js') {
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+    },
+  });
+  logger.info(`Serving React build from: ${buildPath}`);
+}
+
+refreshBuild();
+
+app.use((req, res, next) => {
+  refreshBuild();
+  return staticMiddleware(req, res, next);
+});
+
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/') || req.path.startsWith('/auth/')) return next();
+  refreshBuild();
+  if (!activeBuildPath) return next();
+  res.setHeader('Cache-Control', 'no-cache');
+  return res.sendFile(path.join(activeBuildPath, 'index.html'));
+});
 
 // ───────── Error Handling ─────────
 

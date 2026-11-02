@@ -33,7 +33,6 @@ export default function MobileTrackScreen() {
 
   const activeVehicle = vehicles.find((v) => (v._id || v.id) === activeVehicleId);
   const riskLevel = riskData?.riskLevel || 'low';
-  const riskScore = riskData?.finalRisk ?? 0;
   const speed = lastPosition?.speed ?? 0;
   const color = getRiskColor(riskLevel);
 

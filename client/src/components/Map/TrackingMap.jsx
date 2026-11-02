@@ -63,7 +63,7 @@ function MapUpdater({ position }) {
 }
 
 export default function TrackingMap({ userName, activeVehicle, vehicles = [], allMapVehicles = [] }) {
-  const { riskData, nearbyVehicles, lastPosition, activeVehicleId } = useSocket();
+  const { riskData, nearbyVehicles, lastPosition } = useSocket();
   const [position, setPosition] = useState([20.5937, 78.9629]);
 
   useEffect(() => {

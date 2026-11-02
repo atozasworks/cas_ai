@@ -6,14 +6,17 @@ server/node_modules/
 # Environment files
 .env
 .env.*
+/env.deploy
 !.env.example
 client/.env
 client/.env.*
 server/.env
 server/.env.*
+!server/.env.example
 
 # Build output
 client/build/
+client-build.tar.gz
 server/dist/
 dist/
 build/
