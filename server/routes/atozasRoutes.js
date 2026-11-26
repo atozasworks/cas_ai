@@ -3,6 +3,7 @@ const router = express.Router();
 const atozasController = require('../controllers/atozasController');
 
 router.get('/atozas', atozasController.startAtozasLogin);
+router.get('/atozas/silent', atozasController.startAtozasSilent);
 router.get('/atozas/callback', atozasController.handleAtozasCallback);
 router.post('/atozas/callback', atozasController.handleAtozasCallback);
 router.get('/atozas/me', atozasController.getAtozasMe);

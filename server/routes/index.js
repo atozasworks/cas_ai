@@ -16,7 +16,7 @@ router.get('/health', (req, res) => {
   });
 });
 
-router.get('/app-config', (req, res) => {
+router.get('/app-config', async (req, res) => {
   let origin = req.get('origin') || '';
   if (!origin && req.get('referer')) {
     try { origin = new URL(req.get('referer')).origin; } catch (_) { origin = ''; }
@@ -32,6 +32,9 @@ router.get('/app-config', (req, res) => {
     googleClientId: config.publicClient.googleClientIdForOrigin(origin) || '',
     atozasSsoEnabled: config.atozas.enabled === true,
     atozasAutoRedirect: config.atozas.enabled === true && config.atozas.autoRedirect === true,
+    // The SPA may run the silent check (prompt=none) for guests: /api/auth/atozas/silent
+    atozasSilent: config.atozas.enabled === true
+      && (await require('../services/atozasOidc').isSilentSupported().catch(() => false)),
   });
 });
 
