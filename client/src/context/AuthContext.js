@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { authAPI } from '../services/api';
-import { getRuntimeConfig } from '../services/runtimeConfig';
+import { getRuntimeConfig, clearAtozasOptOut, markAtozasOptOut, maybeAtozasSilentCheck } from '../services/runtimeConfig';
 
 const AuthContext = createContext(null);
 
@@ -21,6 +21,7 @@ export function AuthProvider({ children }) {
 
   const applyAuthSession = (data) => {
     if (!data?.token || !data?.user) return false;
+    clearAtozasOptOut();
     localStorage.setItem('cas_token', data.token);
     localStorage.setItem('cas_user', JSON.stringify(data.user));
     skipNextLoadUserRef.current = true;
@@ -38,6 +39,8 @@ export function AuthProvider({ children }) {
             setLoading(false);
             return;
           }
+          // Signed in on the AtoZ homepage or another AtoZ app? Sign in here too, with no click.
+          if (maybeAtozasSilentCheck(data)) return;
         } catch {
           // No ATOZAS session — continue as logged out.
         }
@@ -103,6 +106,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
+    markAtozasOptOut(); // stay signed out here even while signed in at ATOZAS
     if (getRuntimeConfig().atozasSsoEnabled) {
       try {
         await authAPI.atozasLogout();

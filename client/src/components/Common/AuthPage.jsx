@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { FiShield, FiMail, FiLock, FiUser, FiPhone, FiArrowLeft } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import { getRuntimeConfig, loadRuntimeConfig } from '../../services/runtimeConfig';
+import { getRuntimeConfig, loadRuntimeConfig, startAtozasLogin } from '../../services/runtimeConfig';
 import './AuthPage.css';
 
 // Sign-up steps: 'details' (google + name, email, phone) -> 'otp' -> done
@@ -175,6 +175,11 @@ export default function AuthPage({ initialMode = 'login' }) {
     e.preventDefault();
     setSubmitting(true);
     try {
+      if (!otpSent && atozasSsoEnabled) {
+        // The code is sent and checked by ATOZAS (one login for every AtoZ app).
+        startAtozasLogin('otp', String(form.email || '').trim().toLowerCase());
+        return;
+      }
       if (!otpSent) {
         const data = await requestOtp(form.email, 'login');
         setOtpSent(true);
@@ -296,7 +301,13 @@ export default function AuthPage({ initialMode = 'login' }) {
         <span className="auth-page__divider-line" />
       </div>
 
-      {googleClientId ? (
+      {atozasSsoEnabled ? (
+        // With ATOZAS on, Google logs in at ATOZAS so the login works on every AtoZ app.
+        <button type="button" onClick={() => startAtozasLogin('google')} className="auth-page__google-fallback" style={{ cursor: 'pointer', opacity: 1 }}>
+          <GoogleIcon />
+          Continue with Google
+        </button>
+      ) : googleClientId ? (
         <div ref={loginGoogleBtnRef} className="auth-page__google-wrap" />
       ) : (
         <button type="button" disabled className="auth-page__google-fallback">
@@ -305,7 +316,11 @@ export default function AuthPage({ initialMode = 'login' }) {
         </button>
       )}
 
-      <a href={`/api/auth/atozas?returnTo=%2Fhome&t=${Date.now()}`} className="auth-page__atozas-btn">
+      <a
+        href={`/api/auth/atozas?returnTo=%2Fhome&method=atozas&t=${Date.now()}`}
+        onClick={(e) => { e.preventDefault(); startAtozasLogin('atozas'); }}
+        className="auth-page__atozas-btn"
+      >
         <span className="auth-page__atozas-mark" aria-hidden="true">A</span>
         Continue with ATOZAS
       </a>

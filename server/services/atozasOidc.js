@@ -207,7 +207,9 @@ const discoverEndpoints = async () => {
   return endpoints;
 };
 
-const buildAuthorizeUrl = async ({ state, challenge, nonce }) => {
+// extra: { prompt: 'none' } for the silent check, or { login_method, login_hint } for the button
+// pressed here (ATOZAS then opens that login: one login for every AtoZ app).
+const buildAuthorizeUrl = async ({ state, challenge, nonce, extra = {} }) => {
   const endpoints = await discoverEndpoints();
   if (!endpoints.authorize) {
     throw new Error('ATOZAS authorization endpoint is not configured');
@@ -226,6 +228,9 @@ const buildAuthorizeUrl = async ({ state, challenge, nonce }) => {
 
   if (config.atozas.homepageKey) {
     params.set('homepage_key', config.atozas.homepageKey);
+  }
+  for (const [key, value] of Object.entries(extra || {})) {
+    if (value) params.set(key, String(value));
   }
 
   return `${endpoints.authorize}?${params.toString()}`;
@@ -339,6 +344,34 @@ const isConfigured = () => Boolean(
   && config.atozas.sessionSecret
 );
 
+/**
+ * The silent check (prompt=none) needs ATOZAS's support for it; an older ATOZAS would show its login
+ * page to every guest. On only once ATOZAS reports `pending_login_method` in /sso/session.php
+ * (checked at most every 10 minutes). ATOZAS_SILENT=1 / 0 forces it on / off.
+ */
+let silentCache = { at: 0, ok: false };
+const isSilentSupported = async () => {
+  if (process.env.ATOZAS_SILENT === '1') return true;
+  if (process.env.ATOZAS_SILENT === '0') return false;
+  const issuer = config.atozas.issuer;
+  if (!issuer) return false;
+  if (Date.now() - silentCache.at < 10 * 60 * 1000) return silentCache.ok;
+  let ok = false;
+  try {
+    const base = String(issuer).replace(/\/+$/, '').replace(/\/sso$/, '');
+    const r = await fetch(`${base}/sso/session.php`, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(4000),
+    });
+    const data = await r.json().catch(() => null);
+    ok = r.ok && !!data && Object.prototype.hasOwnProperty.call(data, 'pending_login_method');
+  } catch (_) {
+    ok = false;
+  }
+  silentCache = { at: Date.now(), ok };
+  return ok;
+};
+
 module.exports = {
   generatePkceS256,
   generateState,
@@ -351,6 +384,7 @@ module.exports = {
   isSafeRelativePath,
   discoverEndpoints,
   buildAuthorizeUrl,
+  isSilentSupported,
   exchangeCode,
   fetchUserInfo,
   revokeToken,
