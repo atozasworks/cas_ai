@@ -25,10 +25,13 @@ export const loadRuntimeConfig = async () => {
   if (loadPromise) return loadPromise;
 
   loadPromise = (async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2500);
     try {
       const response = await fetch(APP_CONFIG_ENDPOINT, {
         method: 'GET',
         cache: 'no-store',
+        signal: controller.signal,
       });
       if (!response.ok) return runtimeConfig;
 
@@ -41,7 +44,9 @@ export const loadRuntimeConfig = async () => {
         atozasSilent: data?.atozasSilent === true,
       };
     } catch (_) {
-      // Keep fallback values if runtime config is unavailable..........
+      // Keep fallback values if runtime config is unavailable or too slow.
+    } finally {
+      clearTimeout(timer);
     }
 
     return runtimeConfig;
