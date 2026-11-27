@@ -16,6 +16,7 @@ const {
   unwrapProviderState,
   sanitizeReturnTo,
   buildAuthorizeUrl,
+  isSilentSupported,
   exchangeCode,
   fetchUserInfo,
   revokeToken,
@@ -268,13 +269,36 @@ const callbackForwardHtml = () => `<!DOCTYPE html>
 </body>
 </html>`;
 
+const LOGIN_METHODS = new Set(['google', 'otp', 'atozas']);
+// Silent flows carry this prefix in `state`, so "not signed in" returns quietly even without cookies.
+const SILENT_STATE_PREFIX = 's.';
+
+/*
+ * One login for every AtoZ app:
+ *   GET /auth/atozas?method=google|otp|atozas&login_hint=  the button pressed here; ATOZAS opens that login
+ *   GET /auth/atozas/silent?returnTo=/path                 prompt=none: a visitor signed in at ATOZAS
+ *                                                          (homepage or another AtoZ app) is signed in here
+ *                                                          with no click; anyone else returns as a guest
+ */
+exports.startAtozasSilent = asyncHandler(async (req, res) => {
+  const back = sanitizeReturnTo(req.query.returnTo, '/');
+  if (!config.atozas.enabled || !isConfigured() || !isDBConnected() || req.session?.atozas?.userId) {
+    return res.redirect(back);
+  }
+  if (!(await isSilentSupported())) return res.redirect(back);
+  return startLogin(req, res, true);
+});
+
 exports.startAtozasLogin = asyncHandler(async (req, res, next) => {
   if (!requireSsoReady(next)) return;
+  return startLogin(req, res, false);
+});
 
-  const returnTo = sanitizeReturnTo(req.query.returnTo, '/home');
+const startLogin = async (req, res, silent) => {
+  const returnTo = sanitizeReturnTo(req.query.returnTo, silent ? '/' : '/home');
   const nonce = generateNonce();
   const pkce = generatePkceS256();
-  const state = encodeSignedState(pkce.verifier);
+  const state = (silent ? SILENT_STATE_PREFIX : '') + encodeSignedState(pkce.verifier);
   const flow = {
     state,
     nonce,
@@ -295,17 +319,25 @@ exports.startAtozasLogin = asyncHandler(async (req, res, next) => {
     await saveSession(req);
   }
 
+  const method = String(req.query.method || '').toLowerCase();
+  const hint = String(req.query.login_hint || '').trim().toLowerCase();
   const authorizeUrl = await buildAuthorizeUrl({
     state,
     challenge: pkce.challenge,
     nonce,
+    extra: silent
+      ? { prompt: 'none' }
+      : {
+          login_method: LOGIN_METHODS.has(method) ? method : '',
+          login_hint: hint.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(hint) ? hint : '',
+        },
   });
 
-  logger.info('ATOZAS login started');
+  logger.info('ATOZAS login started', { silent });
   setNoStore(res);
   setFlowCookies(req, res, state);
   res.status(200).type('html').send(interstitialHtml(authorizeUrl));
-});
+};
 
 exports.handleAtozasCallback = asyncHandler(async (req, res) => {
   setNoStore(res);
@@ -343,16 +375,26 @@ exports.handleAtozasCallback = asyncHandler(async (req, res) => {
     return fail('unavailable');
   }
   if (callbackParam(req, 'error')) {
+    // Our own silent check: "not signed in at ATOZAS" -> back to the page as a guest.
+    const silentState = stateCandidates.find((c) => String(c).startsWith(SILENT_STATE_PREFIX));
+    if (silentState) {
+      const doc = await AtozasOidcFlow.findOneAndDelete({ _id: silentState }).catch(() => null);
+      if (req.session) delete req.session.atozasOidc;
+      await saveSession(req).catch(() => {});
+      clearFlowCookie(req, res);
+      return res.redirect(sanitizeReturnTo(doc?.returnTo, '/'));
+    }
     return fail('provider_error', String(callbackParam(req, 'error')));
   }
 
   let pending = null;
   for (const candidate of stateCandidates) {
-    pending = decodeSignedState(candidate);
+    pending = decodeSignedState(String(candidate).replace(/^s\./, ''));
     if (pending) break;
   }
   if (!pending) {
-    pending = decodeSignedState(cookieState) || decodeSignedState(sessionState);
+    pending = decodeSignedState(String(cookieState).replace(/^s\./, ''))
+      || decodeSignedState(String(sessionState).replace(/^s\./, ''));
   }
   if (!pending) {
     pending = await loadOidcFlow({
@@ -438,7 +480,8 @@ exports.getAtozasMe = asyncHandler(async (req, res, next) => {
 
   const userId = req.session?.atozas?.userId;
   if (!userId) {
-    return res.json({ success: true, authenticated: false });
+    // `silent`: the SPA may run the silent check for this guest (/auth/atozas/silent).
+    return res.json({ success: true, authenticated: false, silent: await isSilentSupported() });
   }
 
   const user = await User.findById(userId);
