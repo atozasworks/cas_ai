@@ -24,6 +24,9 @@ const aiAssistantService = require('../services/aiAssistantService');
 const poiService = require('../services/poiService');
 const RiskEvent = require('../models/RiskEvent');
 const Incident = require('../models/Incident');
+const User = require('../models/User');
+const Vehicle = require('../models/Vehicle');
+const { isCrashImpact } = require('../utils/crashDetection');
 const config = require('../config');
 const logger = require('../middleware/logger');
 
@@ -96,6 +99,23 @@ function initializeSocket(httpServer) {
       }
     });
 
+    socket.on('emergency:sensor-crash', async (data) => {
+      try {
+        await handleSensorCrash(socket, data);
+      } catch (err) {
+        logger.error('Sensor crash handler error:', err);
+        socket.emit('emergency:rejected', { message: 'Could not save the crash SOS. Call 112 from this phone.' });
+      }
+    });
+
+    socket.on('emergency:sos-sent', async (data) => {
+      try {
+        await handleSosSent(socket, data);
+      } catch (err) {
+        logger.error('SOS sent handler error:', err);
+      }
+    });
+
     socket.on('disconnect', async () => {
       logger.info(`Socket disconnected: ${socket.id}`);
       if (socket.vehicleId) {
@@ -156,8 +176,6 @@ async function handleLocationUpdate(socket, data) {
   );
 
   // Filter out ALL vehicles owned by this user (not just the active one)
-  const Vehicle = require('../models/Vehicle');
-  const User = require('../models/User');
   const userVehicles = await Vehicle.find({ owner: userId }).select('_id').lean();
   const userVehicleIds = new Set(userVehicles.map((v) => v._id.toString()));
   const filteredNearby = nearby.filter((v) => !userVehicleIds.has(v.vehicleId.toString()));
@@ -366,12 +384,9 @@ async function handleCrashDetection(socket, data) {
     autoEscalationTimer: 30,
   });
 
-  socket.emit('emergency:crash-detected', {
-    incidentId: incident._id,
-    severity: incident.severity,
-    message: 'Possible crash detected! Are you safe?',
-    countdownSeconds: 30,
-    timestamp: Date.now(),
+  await emitCrashOverlay(socket, incident, {
+    isTest: false,
+    message: 'Possible crash detected. If you are safe, tap I AM SAFE. Otherwise send your location to your contacts.',
   });
 
   logger.warn(`CRASH DETECTED: Vehicle ${vehicleId}, severity=${incident.severity}`);
@@ -399,16 +414,136 @@ async function handleEmergencyReport(socket, data) {
     severity: 'critical',
     location: { type: 'Point', coordinates: [longitude, latitude] },
     description: description || 'Emergency reported by user',
-    emergencyNotified: true,
-    emergencyNotifiedAt: new Date(),
+    emergencyNotified: false,
   });
 
   socket.emit('emergency:acknowledged', {
     incidentId: incident._id,
-    message: 'Emergency services have been notified.',
+    message: 'Emergency saved on your account. Call 112 from this phone. UCASA does not reach the 112 center by itself.',
   });
 
   logger.warn(`EMERGENCY REPORT: Vehicle ${vehicleId}, type=${incidentType}`);
+}
+
+function readCoordinate(value, min, max) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < min || number > max) return null;
+  return number;
+}
+
+async function emitCrashOverlay(socket, incident, extra) {
+  const user = await User.findById(incident.userId).select('name emergencyContacts').lean();
+  const coordinates = incident.location?.coordinates || [];
+  const longitude = coordinates[0];
+  const latitude = coordinates[1];
+
+  socket.emit('emergency:crash-detected', {
+    incidentId: incident._id,
+    severity: incident.severity,
+    message: extra.message,
+    countdownSeconds: incident.autoEscalationTimer || 30,
+    latitude,
+    longitude,
+    contacts: (user?.emergencyContacts || []).map((contact) => ({
+      name: contact.name,
+      phone: contact.phone,
+      relationship: contact.relationship,
+    })),
+    userName: user?.name || '',
+    isTest: extra.isTest === true,
+    timestamp: Date.now(),
+  });
+}
+
+async function handleSensorCrash(socket, data) {
+  const source = data?.source === 'test' ? 'test' : 'device_motion';
+  const vehicleId = data?.vehicleId;
+  const latitude = readCoordinate(data?.latitude, -90, 90);
+  const longitude = readCoordinate(data?.longitude, -180, 180);
+  const speed = Math.min(500, Math.max(0, Number(data?.speed) || 0));
+  const peakAcceleration = Number(data?.peakAcceleration);
+
+  if (!/^[a-f0-9]{24}$/i.test(String(vehicleId || '')) || latitude == null || longitude == null) {
+    socket.emit('emergency:rejected', { message: 'Add a vehicle and allow location, then try SOS again.' });
+    return;
+  }
+
+  if (source !== 'test' && !isCrashImpact(peakAcceleration)) return;
+
+  const vehicle = await Vehicle.findById(vehicleId).select('owner');
+  if (!vehicle) {
+    socket.emit('emergency:rejected', { message: 'Add a vehicle first, then try SOS again.' });
+    return;
+  }
+
+  if (source !== 'test') {
+    const recent = await Incident.findOne({
+      vehicleId,
+      incidentType: 'crash_detected',
+      status: 'detected',
+      timestamp: { $gte: new Date(Date.now() - 60000) },
+    }).sort({ timestamp: -1 });
+    if (recent) {
+      await emitCrashOverlay(socket, recent, {
+        isTest: false,
+        message: 'Possible crash detected. If you are safe, tap I AM SAFE. Otherwise send your location to your contacts.',
+      });
+      return;
+    }
+  }
+
+  const gForce = Number.isFinite(peakAcceleration) ? Math.abs(peakAcceleration) / 9.80665 : 0;
+  const incident = await Incident.create({
+    vehicleId,
+    userId: vehicle.owner,
+    incidentType: 'crash_detected',
+    severity: source === 'test' ? 'minor' : (gForce >= 8 ? 'critical' : 'severe'),
+    location: { type: 'Point', coordinates: [longitude, latitude] },
+    description: source === 'test'
+      ? 'Test SOS from the phone. Not a real crash.'
+      : `Phone impact ${peakAcceleration.toFixed(1)} m/s² (${gForce.toFixed(1)} g) at ${speed.toFixed(0)} km/h`,
+    impactData: {
+      decelerationG: gForce,
+      estimatedSpeed: speed,
+    },
+    autoEscalationTimer: 30,
+    notes: source === 'test' ? 'Test SOS. Messages are sent only after a tap on this phone.' : '',
+  });
+
+  await emitCrashOverlay(socket, incident, {
+    isTest: source === 'test',
+    message: source === 'test'
+      ? 'Test SOS. This is not a real crash. Your location is ready. Nothing is sent until you tap.'
+      : 'Possible crash detected. If you are safe, tap I AM SAFE. Otherwise send your location to your contacts.',
+  });
+
+  logger.warn(`SENSOR CRASH: Vehicle ${vehicleId}, source=${source}, severity=${incident.severity}`);
+}
+
+async function handleSosSent(socket, data) {
+  const incidentId = data?.incidentId;
+  const channel = String(data?.channel || 'sms').slice(0, 40);
+  if (!incidentId) return;
+
+  const incident = await Incident.findById(incidentId);
+  if (!incident) return;
+
+  const user = await User.findById(incident.userId).select('emergencyContacts');
+  incident.emergencyNotified = true;
+  incident.emergencyNotifiedAt = new Date();
+  if (incident.status === 'detected') incident.status = 'confirmed';
+  incident.emergencyContacts = (user?.emergencyContacts || []).map((contact) => ({
+    name: contact.name,
+    phone: contact.phone,
+    notifiedAt: new Date(),
+  }));
+  incident.notes = `Location message opened on this phone via ${channel}. UCASA does not call 112 by itself.`;
+  await incident.save();
+
+  socket.emit('emergency:sos-recorded', {
+    incidentId,
+    message: 'SOS saved. Finish sending the text from your phone, and call 112 if you need help.',
+  });
 }
 
 function getIO() {

@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { connectSocket, disconnectSocket, getSocket, joinVehicleRoom, sendLocationUpdate } from '../services/socket';
+import { connectSocket, disconnectSocket, getSocket, joinVehicleRoom, reportSensorCrash, sendLocationUpdate } from '../services/socket';
+import { requestMotionPermission, startCrashSensor } from '../services/crashSensor';
+import { vehicleAPI } from '../services/api';
 import { haversineMeters, bearingDegrees } from '../utils/helpers';
 import { useAuth } from './AuthContext';
 
@@ -21,6 +23,13 @@ export function SocketProvider({ children }) {
   const gpsErrorNotifiedRef = useRef(false);
   const lastPositionRef = useRef(null);
   const compassHeadingRef = useRef(null);
+  const crashStopRef = useRef(null);
+  const activeVehicleIdRef = useRef(null);
+  const userRef = useRef(user);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   // Device compass (works even when stationary, e.g. phones on a desk during testing).
   // 'deviceorientationabsolute' fires on Android Chrome; webkitCompassHeading covers iOS.
@@ -98,6 +107,14 @@ export function SocketProvider({ children }) {
       setEmergency(null);
     });
 
+    socket.on('emergency:rejected', (data) => {
+      toast.error(data?.message || 'SOS could not be started');
+    });
+
+    socket.on('emergency:sos-recorded', (data) => {
+      if (data?.message) toast.success(data.message);
+    });
+
     socket.on('alert:behavior', (data) => {
       setBehaviorAlert(data);
       setTimeout(() => setBehaviorAlert(null), 5000);
@@ -124,12 +141,48 @@ export function SocketProvider({ children }) {
     };
   }, [isAuthenticated]);
 
-  const startTracking = useCallback((vehicleId) => {
+  const stopCrashWatch = useCallback(() => {
+    if (crashStopRef.current) {
+      crashStopRef.current();
+      crashStopRef.current = null;
+    }
+  }, []);
+
+  const startTracking = useCallback(async (vehicleId) => {
     if (!user) return;
 
+    const motionPermission = await requestMotionPermission();
+
     setActiveVehicleId(vehicleId);
+    activeVehicleIdRef.current = vehicleId;
     const socket = getSocket();
     if (socket) joinVehicleRoom(vehicleId, user._id || user.id);
+
+    stopCrashWatch();
+    if (motionPermission === 'granted') {
+      crashStopRef.current = startCrashSensor({
+        onImpact: (sample) => {
+          const pos = lastPositionRef.current;
+          const currentUser = userRef.current;
+          const currentVehicleId = activeVehicleIdRef.current;
+          if (!pos || !currentUser || !currentVehicleId) return;
+          const sent = reportSensorCrash({
+            vehicleId: currentVehicleId,
+            userId: currentUser._id || currentUser.id,
+            latitude: pos.latitude,
+            longitude: pos.longitude,
+            speed: pos.speed || 0,
+            peakAcceleration: sample.peakAcceleration,
+            source: 'device_motion',
+          });
+          if (!sent) {
+            toast.error('Crash detected, but the app is offline. Call 112 and tell someone your location.');
+          }
+        },
+      });
+    } else if (motionPermission === 'denied') {
+      toast.error('Motion access is off, so automatic crash detection is off. Allow motion and tap Track again.');
+    }
 
     if (gpsIntervalRef.current) clearInterval(gpsIntervalRef.current);
 
@@ -194,13 +247,15 @@ export function SocketProvider({ children }) {
 
     sendGPS();
     gpsIntervalRef.current = setInterval(sendGPS, 3000);
-  }, [user]);
+  }, [user, stopCrashWatch]);
 
   const stopTracking = useCallback(() => {
     if (gpsIntervalRef.current) {
       clearInterval(gpsIntervalRef.current);
       gpsIntervalRef.current = null;
     }
+    stopCrashWatch();
+    activeVehicleIdRef.current = null;
     setActiveVehicleId(null);
     setRiskData(null);
     setNearbyVehicles([]);
@@ -208,7 +263,53 @@ export function SocketProvider({ children }) {
     lastPositionRef.current = null;
     setVehicleNearbyAlert(null);
     setZoneAlert(null);
-  }, []);
+  }, [stopCrashWatch]);
+
+  const sendTestSos = useCallback(async () => {
+    if (!user) return { ok: false, reason: 'auth' };
+    if (!(user.emergencyContacts || []).length) return { ok: false, reason: 'contacts' };
+
+    let vehicleId = activeVehicleIdRef.current;
+    if (!vehicleId) {
+      try {
+        const data = await vehicleAPI.getAll();
+        const first = (data.vehicles || [])[0];
+        vehicleId = first?._id || first?.id || null;
+      } catch {
+        return { ok: false, reason: 'vehicle' };
+      }
+    }
+    if (!vehicleId) return { ok: false, reason: 'vehicle' };
+
+    let position;
+    try {
+      position = await new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('unsupported'));
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          maximumAge: 5000,
+          timeout: 8000,
+        });
+      });
+    } catch {
+      return { ok: false, reason: 'gps' };
+    }
+
+    const sent = reportSensorCrash({
+      vehicleId,
+      userId: user._id || user.id,
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      speed: (position.coords.speed || 0) * 3.6,
+      peakAcceleration: 0,
+      source: 'test',
+    });
+    if (!sent) return { ok: false, reason: 'socket' };
+    return { ok: true };
+  }, [user]);
 
   // Closing the warning popup ends the tracking session so the button returns
   // to "Track". Starting a new session resets everything, so the popup can
@@ -237,6 +338,7 @@ export function SocketProvider({ children }) {
       activeVehicleId,
       startTracking,
       stopTracking,
+      sendTestSos,
       lastPosition,
     }}>
       {children}

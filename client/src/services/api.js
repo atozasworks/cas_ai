@@ -71,6 +71,8 @@ export const authAPI = {
   getMe: () => api.get('/auth/me'),
   updateProfile: (data) => api.patch('/auth/profile', data),
   updatePreferences: (data) => api.patch('/auth/preferences', data),
+  addEmergencyContact: (data) => api.post('/auth/emergency-contacts', data),
+  removeEmergencyContact: (phoneDigits) => api.delete(`/auth/emergency-contacts/${phoneDigits}`),
   getAtozasMe: () => fetch('/api/auth/atozas/me', {
     method: 'GET',
     credentials: 'include',

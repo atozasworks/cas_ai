@@ -113,3 +113,19 @@ export function reportEmergency(data) {
     socket.emit('emergency:report', data);
   }
 }
+
+export function reportSensorCrash(data) {
+  if (socket?.connected) {
+    socket.emit('emergency:sensor-crash', data);
+    return true;
+  }
+  return false;
+}
+
+export function markSosSent(incidentId, channel) {
+  if (socket?.connected && incidentId) {
+    socket.emit('emergency:sos-sent', { incidentId, channel });
+    return true;
+  }
+  return false;
+}

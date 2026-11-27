@@ -497,18 +497,52 @@ exports.updatePreferences = asyncHandler(async (req, res) => {
   res.json({ success: true, preferences: user.preferences });
 });
 
-exports.addEmergencyContact = asyncHandler(async (req, res) => {
+const MAX_EMERGENCY_CONTACTS = 5;
+
+function normalizeEmergencyPhone(raw) {
+  let digits = String(raw || '').replace(/\D/g, '');
+  if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+  const withCountry = digits.length === 10 ? `91${digits}` : digits;
+  if (withCountry.length < 7 || withCountry.length > 15) return null;
+  return `+${withCountry}`;
+}
+
+exports.addEmergencyContact = asyncHandler(async (req, res, next) => {
+  const phone = normalizeEmergencyPhone(req.body.phone);
+  if (!phone) return next(new AppError('Enter a valid phone number', 400));
+
   const user = await User.findById(req.user._id);
-  user.emergencyContacts.push(req.body);
+  if (user.emergencyContacts.length >= MAX_EMERGENCY_CONTACTS) {
+    return next(new AppError('You can save up to 5 emergency contacts', 400));
+  }
+
+  const digits = phone.replace(/\D/g, '');
+  const duplicate = user.emergencyContacts.some(
+    (contact) => String(contact.phone).replace(/\D/g, '') === digits
+  );
+  if (duplicate) return next(new AppError('That number is already saved', 409));
+
+  user.emergencyContacts.push({
+    name: String(req.body.name || '').trim(),
+    phone,
+    relationship: String(req.body.relationship || 'family').trim() || 'family',
+  });
   await user.save();
   res.status(201).json({ success: true, emergencyContacts: user.emergencyContacts });
 });
 
-exports.removeEmergencyContact = asyncHandler(async (req, res) => {
+exports.removeEmergencyContact = asyncHandler(async (req, res, next) => {
+  const needle = String(req.params.phone || '').replace(/\D/g, '');
+  if (!needle) return next(new AppError('Phone is required', 400));
+
   const user = await User.findById(req.user._id);
+  const before = user.emergencyContacts.length;
   user.emergencyContacts = user.emergencyContacts.filter(
-    (c) => c.phone !== req.params.phone
+    (contact) => String(contact.phone).replace(/\D/g, '') !== needle
   );
+  if (user.emergencyContacts.length === before) {
+    return next(new AppError('Contact not found', 404));
+  }
   await user.save();
   res.json({ success: true, emergencyContacts: user.emergencyContacts });
 });

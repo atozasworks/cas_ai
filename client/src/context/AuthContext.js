@@ -132,9 +132,30 @@ export function AuthProvider({ children }) {
     return data.user;
   };
 
+  const setEmergencyContacts = (emergencyContacts) => {
+    setUser((prev) => {
+      const nextUser = { ...prev, emergencyContacts };
+      localStorage.setItem('cas_user', JSON.stringify(nextUser));
+      return nextUser;
+    });
+  };
+
+  const addEmergencyContact = async (contact) => {
+    const data = await authAPI.addEmergencyContact(contact);
+    setEmergencyContacts(data.emergencyContacts || []);
+    return data.emergencyContacts;
+  };
+
+  const removeEmergencyContact = async (phoneDigits) => {
+    const data = await authAPI.removeEmergencyContact(phoneDigits);
+    setEmergencyContacts(data.emergencyContacts || []);
+    return data.emergencyContacts;
+  };
+
   return (
     <AuthContext.Provider value={{
       user, token, loading, login, register, logout, updatePreferences, updateProfile,
+      addEmergencyContact, removeEmergencyContact,
       requestOtp, verifySignupOtp, googleAuth,
       isAuthenticated: !!user,
     }}>
