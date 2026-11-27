@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles/global.css';
 import './styles/mobile.css';
-import { loadRuntimeConfig } from './services/runtimeConfig';
+import { getRuntimeConfig, loadRuntimeConfig } from './services/runtimeConfig';
 import { setApiBaseUrl } from './services/api';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 
@@ -34,10 +34,13 @@ const renderApp = () => {
 };
 
 if (!maybeRedirectToProductionOrigin()) {
-  loadRuntimeConfig()
+  // Paint first. A hung /app-config used to leave #root empty, so refresh looked blank.
+  renderApp();
+  serviceWorkerRegistration.register();
+  Promise.race([
+    loadRuntimeConfig(),
+    new Promise((resolve) => setTimeout(() => resolve(getRuntimeConfig()), 3000)),
+  ])
     .then((cfg) => setApiBaseUrl(cfg.apiUrl))
-    .finally(() => {
-      renderApp();
-      serviceWorkerRegistration.register();
-    });
+    .catch(() => {});
 }

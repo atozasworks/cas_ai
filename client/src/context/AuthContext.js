@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { authAPI } from '../services/api';
-import { getRuntimeConfig, clearAtozasOptOut, markAtozasOptOut, maybeAtozasSilentCheck } from '../services/runtimeConfig';
+import { getRuntimeConfig, loadRuntimeConfig, clearAtozasOptOut, markAtozasOptOut, maybeAtozasSilentCheck } from '../services/runtimeConfig';
 
 const AuthContext = createContext(null);
 
@@ -31,6 +31,7 @@ export function AuthProvider({ children }) {
   };
 
   const loadUser = useCallback(async () => {
+    await loadRuntimeConfig().catch(() => {});
     if (!token) {
       if (getRuntimeConfig().atozasSsoEnabled) {
         try {
