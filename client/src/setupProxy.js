@@ -3,6 +3,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 module.exports = function setupProxy(app) {
   app.use((req, res, next) => {
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     next();
   });
 

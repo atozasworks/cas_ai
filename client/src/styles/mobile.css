@@ -179,6 +179,10 @@
     min-height: 100%;
   }
 
+  .mobile-track-map-wrap .leaflet-control-attribution {
+    margin-bottom: calc(68px + env(safe-area-inset-bottom, 0));
+  }
+
   .mobile-track-floating {
     position: absolute;
     left: 16px;

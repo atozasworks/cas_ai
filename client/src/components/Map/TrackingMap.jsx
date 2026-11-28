@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+import { MapContainer, Marker, Popup, Circle, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { useSocket } from '../../context/SocketContext';
 import { getRiskColor, formatDistance, formatSpeed } from '../../utils/helpers';
@@ -51,6 +51,9 @@ const getVehicleIcon = (type) => {
     iconAnchor: [16, 16],
   });
 };
+
+const OSM_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>';
 
 function MapUpdater({ position }) {
   const map = useMap();
@@ -119,8 +122,10 @@ export default function TrackingMap({ userName, activeVehicle, vehicles = [], al
         zoomControl={false}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution={OSM_ATTRIBUTION}
+          url={OSM_TILE_URL}
+          maxZoom={19}
+          referrerPolicy="strict-origin-when-cross-origin"
         />
         <MapUpdater position={position} />
 

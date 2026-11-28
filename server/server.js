@@ -27,6 +27,8 @@ app.use(helmet({
   contentSecurityPolicy: false,
   // Required for Google Sign-In popup mode in modern browsers.
   crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+  // OpenStreetMap rejects tile requests that omit Referer.
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
 app.use(compression());
 app.use(cors({
