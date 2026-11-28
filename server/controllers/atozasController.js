@@ -15,6 +15,7 @@ const {
   decodeSignedState,
   unwrapProviderState,
   sanitizeReturnTo,
+  resolvePostLoginTarget,
   buildAuthorizeUrl,
   isSilentSupported,
   exchangeCode,
@@ -73,6 +74,22 @@ const redirectWithError = (res, returnTo, code) => {
   const separator = target.includes('?') ? '&' : '?';
   const loginFallback = target.startsWith('/login') ? target : '/login';
   res.redirect(`${loginFallback}${separator}sso_error=${encodeURIComponent(code || 'login_failed')}`);
+};
+
+const postLoginTarget = (req, returnTo) => {
+  const fallback = sanitizeReturnTo(returnTo, '/home');
+  if (typeof resolvePostLoginTarget !== 'function') return fallback;
+  try {
+    const target = resolvePostLoginTarget({
+      land: req.session?.atozasOidc?.land,
+      homepageUrl: config.atozas && config.atozas.homepageUrl,
+      returnTo: fallback,
+    });
+    return typeof target === 'string' && target ? target : fallback;
+  } catch (err) {
+    logger.warn('ATOZAS post-login redirect failed', { reason: err.message });
+    return fallback;
+  }
 };
 
 const upsertAtozasUser = async (profile) => {
@@ -340,6 +357,21 @@ const startLogin = async (req, res, silent) => {
 };
 
 exports.handleAtozasCallback = asyncHandler(async (req, res) => {
+  try {
+    await finishAtozasCallback(req, res);
+  } catch (err) {
+    logger.error('ATOZAS callback crashed', { reason: err.message });
+    if (res.headersSent) return;
+    const returnTo = sanitizeReturnTo(req.session?.atozasOidc?.returnTo, '/home');
+    if (req.session?.atozas?.userId) {
+      res.redirect(postLoginTarget(req, returnTo));
+      return;
+    }
+    redirectWithError(res, returnTo, 'login_failed');
+  }
+});
+
+const finishAtozasCallback = async (req, res) => {
   setNoStore(res);
   const earlyCode = readAuthCode(req);
   const earlyError = callbackParam(req, 'error');
@@ -472,8 +504,10 @@ exports.handleAtozasCallback = asyncHandler(async (req, res) => {
     userId: String(result.user._id),
     created: result.created,
   });
-  res.redirect(returnTo);
-});
+  if (!res.headersSent) {
+    res.redirect(postLoginTarget(req, returnTo));
+  }
+};
 
 exports.getAtozasMe = asyncHandler(async (req, res, next) => {
   if (!requireSsoReady(next)) return;

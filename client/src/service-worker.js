@@ -18,6 +18,10 @@ registerRoute(
     if (url.pathname.startsWith('/_')) {
       return false;
     }
+    // Login start and the OAuth callback must reach the server, not the app shell.
+    if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/')) {
+      return false;
+    }
     if (url.pathname.match(fileExtensionRegexp)) {
       return false;
     }
@@ -37,7 +41,7 @@ registerRoute(
 );
 
 registerRoute(
-  ({ url }) => url.pathname.startsWith('/api/'),
+  ({ url }) => url.pathname.startsWith('/api/') && !url.pathname.startsWith('/api/auth'),
   new NetworkFirst({
     cacheName: 'cas-api',
     networkTimeoutSeconds: 10,

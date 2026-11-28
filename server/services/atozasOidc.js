@@ -97,6 +97,29 @@ const sanitizeReturnTo = (value, fallback = '/home') => {
   return isSafeRelativePath(raw) ? raw.split('#')[0] : fallback;
 };
 
+const isAllowedAtozasHomepage = (value) => {
+  try {
+    const parsed = new URL(String(value || ''));
+    if (parsed.protocol !== 'https:') return false;
+    const host = parsed.hostname.toLowerCase();
+    return host === 'atozasindia.in'
+      || host === 'www.atozasindia.in'
+      || host === 'testatozas.in'
+      || host === 'www.testatozas.in';
+  } catch (_) {
+    return false;
+  }
+};
+
+// Google, OTP, and ATOZAS button logins can finish on the ATOZAS homepage.
+// Every other completed login, including homepage Login, finishes in this app.
+const resolvePostLoginTarget = ({ land, homepageUrl, returnTo } = {}) => {
+  if (land === 'homepage' && isAllowedAtozasHomepage(homepageUrl)) {
+    return homepageUrl;
+  }
+  return sanitizeReturnTo(returnTo, '/home');
+};
+
 const discoveryUrlsForIssuer = (issuer) => {
   const urls = [];
   if (!issuer) return urls;
@@ -382,6 +405,8 @@ module.exports = {
   safeEqual,
   sanitizeReturnTo,
   isSafeRelativePath,
+  isAllowedAtozasHomepage,
+  resolvePostLoginTarget,
   discoverEndpoints,
   buildAuthorizeUrl,
   isSilentSupported,
